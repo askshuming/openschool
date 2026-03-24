@@ -1,0 +1,10 @@
+{
+  "name": "lessonforge-family-mvp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.mjs",
+    "check": "node --check server.mjs && node --check src/server/create-app-server.mjs && node --check src/domain/course/blueprint.mjs && node --check src/domain/material/parser.mjs && node --check src/domain/material/upload-extractor.mjs && node --check src/services/minimax/blueprint-generation.mjs && node --check public/common.js && node --check public/home.js && node --check public/planner.js && node --check public/course.js"
+  }
+}

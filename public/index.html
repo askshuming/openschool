@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LessonForge Family</title>
+    <meta
+      name="description"
+      content="面向家长的教材转课程平台：上传教材，快速生成可直接开讲的课程。"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="top-nav">
+        <a class="brand" href="/" aria-label="LessonForge Family">
+          <span class="brand-mark">LF</span>
+          <span class="brand-copy">
+            <strong>LessonForge Family</strong>
+            <span>Personalized learning path builder</span>
+          </span>
+        </a>
+        <nav class="nav-links">
+          <a href="#flow">流程</a>
+          <a href="#value">价值</a>
+          <a href="#trust">信任</a>
+        </nav>
+        <div class="nav-actions">
+          <button type="button" class="button button-quiet" id="theme-toggle" aria-pressed="false">
+            <span class="theme-dot" aria-hidden="true"></span>
+            <span id="theme-toggle-label">Dark</span>
+          </button>
+          <a class="button button-secondary" href="/course.html">查看最近课程</a>
+          <a class="button button-primary" href="/planner.html">开始生成</a>
+        </div>
+      </header>
+
+      <main>
+        <section class="section hero" id="top">
+          <div class="hero-copy">
+            <span class="eyebrow">Attract</span>
+            <h1>每个孩子都值得一条自己的学习路径。</h1>
+            <p>
+              上传教材，补充孩子当前状态，几分钟得到一份可直接开讲的课程方案，而不是一份难落地的泛化大纲。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="/planner.html">去生成页</a>
+              <a class="button button-secondary" href="#flow">了解生成逻辑</a>
+            </div>
+          </div>
+          <div class="hero-visual panel">
+            <div class="mock-window">
+              <div class="mock-top">
+                <span></span><span></span><span></span>
+              </div>
+              <div class="mock-grid">
+                <article>
+                  <h3>输入孩子画像</h3>
+                  <p>年级、薄弱点、目标。</p>
+                </article>
+                <article>
+                  <h3>解析教材线索</h3>
+                  <p>章节、重点、练习策略。</p>
+                </article>
+                <article>
+                  <h3>生成可执行课程</h3>
+                  <p>脚本、练习、家长提示。</p>
+                </article>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section section-flow" id="flow">
+          <div class="section-head">
+            <span class="eyebrow">Understand</span>
+            <h2>三步，从教材到课程。</h2>
+            <p>每一步只做一件事：输入、理解、生成。</p>
+          </div>
+          <div class="flow-grid">
+            <article class="flow-card">
+              <span class="step">01</span>
+              <h3>生成页输入信息</h3>
+              <p>填写基础信息并上传教材，建立最小教学上下文。</p>
+            </article>
+            <article class="flow-card">
+              <span class="step">02</span>
+              <h3>系统解析教材信号</h3>
+              <p>抽取关键词与薄弱点，形成差异化课程主题。</p>
+            </article>
+            <article class="flow-card">
+              <span class="step">03</span>
+              <h3>课程页交付结果</h3>
+              <p>在独立课程页查看表格、详情侧栏和教学脚本。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section section-contrast" id="value">
+          <div class="section-head">
+            <span class="eyebrow">Value</span>
+            <h2>同一本教材，生成不同路径。</h2>
+            <p>让家长看到“个性化”不是口号，而是明确结构差异。</p>
+          </div>
+          <div class="contrast-grid">
+            <article class="contrast-card">
+              <h3>A 路径：概念不稳</h3>
+              <ul>
+                <li>先概念拆分，再例题演示</li>
+                <li>每节课聚焦 1 个核心目标</li>
+                <li>家长提问以“理解检查”为主</li>
+              </ul>
+            </article>
+            <article class="contrast-card">
+              <h3>B 路径：应用题卡顿</h3>
+              <ul>
+                <li>先题型归类，再步骤训练</li>
+                <li>每节课加入 1 组变式练习</li>
+                <li>家长提问以“思路复述”为主</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section class="section section-trust" id="trust">
+          <div class="section-head">
+            <span class="eyebrow">Confidence</span>
+            <h2>可控、可解释、可复用。</h2>
+          </div>
+          <div class="trust-list panel">
+            <div>
+              <h3>可控</h3>
+              <p>你决定输入条件、课时节奏和训练方向。</p>
+            </div>
+            <div>
+              <h3>可解释</h3>
+              <p>每个课节都能看到目标与流程，不是黑盒结果。</p>
+            </div>
+            <div>
+              <h3>可复用</h3>
+              <p>课节可复制为脚本，能沉淀为家庭固定学习模板。</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="section section-cta">
+          <div class="cta-card panel">
+            <h2>进入生成页，开始你的第一套课程。</h2>
+            <p>首页负责理解产品，生成页负责输入，课程页负责交付与复盘。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="/planner.html">前往生成页</a>
+              <a class="button button-secondary" href="/course.html">查看课程页</a>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <span>LessonForge Family</span>
+        <span>Clean-room MVP · Parent-first design</span>
+      </footer>
+    </div>
+    <script type="module" src="/home.js"></script>
+  </body>
+</html>

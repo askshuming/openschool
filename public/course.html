@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>课程页 · LessonForge Family</title>
+    <meta name="description" content="查看已生成课程：表格、详情侧栏、教学脚本。" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="top-nav">
+        <a class="brand" href="/" aria-label="LessonForge Family">
+          <span class="brand-mark">LF</span>
+          <span class="brand-copy">
+            <strong>LessonForge Family</strong>
+            <span>Course Workspace</span>
+          </span>
+        </a>
+        <nav class="nav-links">
+          <a href="/">首页</a>
+          <a href="/planner.html">生成页</a>
+          <a href="/course.html">课程页</a>
+        </nav>
+        <div class="nav-actions">
+          <button type="button" class="button button-quiet" id="theme-toggle" aria-pressed="false">
+            <span class="theme-dot" aria-hidden="true"></span>
+            <span id="theme-toggle-label">Dark</span>
+          </button>
+          <a class="button button-secondary" href="/planner.html" id="back-to-planner">重新生成</a>
+        </div>
+      </header>
+
+      <main class="subpage-main">
+        <section class="builder-head">
+          <div>
+            <span class="eyebrow">Step 2 / Course</span>
+            <h2 id="course-title">课程表格视图</h2>
+            <p id="course-subtitle">先在生成页创建课程，然后在本页查看详细内容。</p>
+          </div>
+          <div class="hero-actions">
+            <span id="generation-indicator" class="status-chip">Generation: pending</span>
+            <a class="button button-secondary" href="/planner.html">返回生成页</a>
+          </div>
+        </section>
+
+        <section class="workspace">
+          <main class="panel workspace-main">
+            <div class="workspace-head">
+              <div>
+                <h2>课程主表格</h2>
+                <p>支持筛选与排序，点击行查看右侧详情。</p>
+              </div>
+              <div id="course-tags" class="tag-row"></div>
+            </div>
+
+            <div class="table-toolbar">
+              <label class="field compact toolbar-field">
+                <span>搜索课节</span>
+                <input id="lesson-search" placeholder="按标题或完成信号筛选" />
+              </label>
+              <label class="field compact toolbar-field">
+                <span>时长筛选</span>
+                <select id="duration-filter">
+                  <option value="all">全部</option>
+                  <option value="short">≤ 20 分钟</option>
+                  <option value="medium">21-30 分钟</option>
+                  <option value="long">≥ 31 分钟</option>
+                </select>
+              </label>
+              <label class="field compact toolbar-field">
+                <span>排序</span>
+                <select id="sort-filter">
+                  <option value="order-asc">默认顺序</option>
+                  <option value="duration-asc">时长升序</option>
+                  <option value="duration-desc">时长降序</option>
+                  <option value="title-asc">主题 A-Z</option>
+                </select>
+              </label>
+              <button type="button" class="button button-secondary" id="clear-filters">清空筛选</button>
+            </div>
+
+            <div class="table-region">
+              <section class="data-state" id="data-empty">
+                <h3>还没有课程数据</h3>
+                <p>请先进入生成页提交信息，再回到本页查看结果。</p>
+                <a class="button button-primary" href="/planner.html">去生成页</a>
+              </section>
+              <section class="data-state hidden" id="data-loading">
+                <h3>正在加载课程</h3>
+                <p>系统正在整理课程数据。</p>
+                <div class="skeleton-list" aria-hidden="true">
+                  <span></span><span></span><span></span>
+                </div>
+              </section>
+              <section class="data-state hidden" id="data-error">
+                <h3>课程数据异常</h3>
+                <p id="data-error-message">请返回生成页重新生成。</p>
+                <a class="button button-secondary" href="/planner.html">返回生成页</a>
+              </section>
+              <div class="table-wrapper hidden" id="data-table">
+                <table class="lesson-table" aria-label="课程课节列表">
+                  <thead>
+                    <tr>
+                      <th>课节</th>
+                      <th>主题</th>
+                      <th>时长</th>
+                      <th>目标数</th>
+                      <th>练习项</th>
+                      <th>完成信号</th>
+                    </tr>
+                  </thead>
+                  <tbody id="lesson-table-body"></tbody>
+                </table>
+                <div class="inline-empty hidden" id="table-filter-empty">当前筛选条件下没有课节。</div>
+              </div>
+            </div>
+          </main>
+
+          <aside class="panel workspace-side">
+            <div class="side-head">
+              <h2>详情侧栏</h2>
+              <p>查看课程摘要、策略诊断和选中课节的完整内容。</p>
+            </div>
+            <section class="side-state" id="side-empty">
+              <p>生成课程后，侧栏会展示概要信息和课节细节。</p>
+            </section>
+            <section class="side-state hidden" id="side-loading">
+              <p>正在准备详情内容...</p>
+            </section>
+            <div class="side-content hidden" id="side-content">
+              <section class="side-block">
+                <h3>课程摘要</h3>
+                <div id="summary-content"></div>
+              </section>
+              <section class="side-block">
+                <h3>策略与诊断</h3>
+                <div id="strategy-content"></div>
+              </section>
+              <section class="side-block">
+                <h3>课节详情</h3>
+                <div id="detail-content"></div>
+                <div class="side-actions">
+                  <button type="button" class="button button-secondary" id="copy-lesson-script" disabled>
+                    复制教学脚本
+                  </button>
+                </div>
+              </section>
+            </div>
+          </aside>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <span>LessonForge Family</span>
+        <span>Course Page</span>
+      </footer>
+    </div>
+    <script type="module" src="/course.js"></script>
+  </body>
+</html>

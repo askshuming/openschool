@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>生成页 · LessonForge Family</title>
+    <meta name="description" content="填写孩子信息与教材输入，生成个性化课程。" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="top-nav">
+        <a class="brand" href="/" aria-label="LessonForge Family">
+          <span class="brand-mark">LF</span>
+          <span class="brand-copy">
+            <strong>LessonForge Family</strong>
+            <span>Planner</span>
+          </span>
+        </a>
+        <nav class="nav-links">
+          <a href="/">首页</a>
+          <a href="/planner.html">生成页</a>
+          <a href="/course.html">课程页</a>
+        </nav>
+        <div class="nav-actions">
+          <button type="button" class="button button-quiet" id="theme-toggle" aria-pressed="false">
+            <span class="theme-dot" aria-hidden="true"></span>
+            <span id="theme-toggle-label">Dark</span>
+          </button>
+          <a class="button button-secondary" href="/course.html">查看最近课程</a>
+        </div>
+      </header>
+
+      <main class="subpage-main">
+        <section class="panel page-intro">
+          <span class="eyebrow">Step 1 / Planner</span>
+          <h1>填写教材与孩子信息</h1>
+          <p>提交后会进入独立课程页，查看表格、详情侧栏和教学脚本。</p>
+          <div class="hero-actions">
+            <span id="generation-indicator" class="status-chip">Generation: pending</span>
+          </div>
+        </section>
+
+        <section class="panel control-panel">
+          <form id="planner-form" class="control-form" novalidate>
+            <div class="control-row">
+              <label class="field compact">
+                <span>孩子昵称</span>
+                <input name="childName" placeholder="小米" />
+              </label>
+              <label class="field compact required">
+                <span>年级</span>
+                <input name="grade" placeholder="小学三年级" required />
+              </label>
+              <label class="field compact required">
+                <span>学科</span>
+                <input name="subject" placeholder="数学" required />
+              </label>
+              <label class="field compact required">
+                <span>章节</span>
+                <input name="chapter" placeholder="分数的初步认识" required />
+              </label>
+              <label class="field compact">
+                <span>课时</span>
+                <input name="lessonCount" type="number" min="1" max="8" value="4" />
+              </label>
+              <label class="field compact">
+                <span>时长(min)</span>
+                <input name="lessonDurationMinutes" type="number" min="10" max="60" value="25" />
+              </label>
+            </div>
+
+            <div class="control-row control-row-secondary">
+              <label class="field compact">
+                <span>教材版本</span>
+                <input name="textbookVersion" placeholder="人教版 / 北师大版" />
+              </label>
+              <label class="field compact field-wide">
+                <span>家长目标</span>
+                <input name="parentGoal" placeholder="单元测试前梳理重点与练习节奏" />
+              </label>
+              <label class="field compact field-wide">
+                <span>薄弱点</span>
+                <input name="focusAreas" placeholder="应用题读题慢，步骤容易漏" />
+              </label>
+            </div>
+
+            <div class="control-row control-row-secondary">
+              <label class="field compact field-full">
+                <span>教材摘要（可选）</span>
+                <textarea
+                  name="materialNotes"
+                  rows="3"
+                  placeholder="粘贴目录、知识点、例题摘要。PDF 大文件会自动走元信息模式。"
+                ></textarea>
+              </label>
+            </div>
+
+            <div class="control-footer">
+              <div class="file-group">
+                <input id="material-file" class="sr-only" type="file" />
+                <button type="button" class="button button-secondary" id="file-trigger">选择教材文件</button>
+                <span id="file-state" class="file-state" aria-live="polite">未选择文件</span>
+              </div>
+              <div class="hero-actions planner-actions">
+                <a class="button button-secondary" href="/">返回首页</a>
+                <button type="submit" class="button button-primary" id="generate-button">生成课程并进入课程页</button>
+              </div>
+            </div>
+          </form>
+          <div class="feedback feedback-neutral" id="status" aria-live="polite">
+            先填写必填项，再点击生成课程。
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <span>LessonForge Family</span>
+        <span>Planner Page</span>
+      </footer>
+    </div>
+    <script type="module" src="/planner.js"></script>
+  </body>
+</html>
