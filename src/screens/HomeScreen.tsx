@@ -175,7 +175,7 @@ export function HomeScreen({ navigation, route }: Props) {
       : homePhase === "open_review_focus"
         ? "这一页，先稳稳收住"
         : resumableJourneyInput
-          ? "这一页，已经安排好第一步"
+          ? "这一页，先从第一步开始"
           : "不会的这一页，拍一下";
   const heroSubtitle =
     homePhase === "resume_session"
@@ -183,8 +183,8 @@ export function HomeScreen({ navigation, route }: Props) {
       : homePhase === "open_review_focus"
         ? `刚学完「${journeyLessonTitle}」，现在先做 ${pendingReviewCount} 项温和复习，把这次内容收住。`
         : resumableJourneyInput
-          ? `已识别为 ${routeFocusLabel}，先做「${routeFocusStep}」。`
-          : "课文页、阅读题、作文题、生字词，都能直接拍下来开始学。";
+          ? `刚拍的这一页，先做「${routeFocusStep}」。`
+          : "课文页、阅读题、作文题、生字词，都能直接拍下来开始。";
   const heroMascotSpeech =
     homePhase === "resume_session"
       ? "从这一步接着来"
@@ -194,11 +194,11 @@ export function HomeScreen({ navigation, route }: Props) {
           ? "我先带你做第一步"
           : "不会的那页拍给我";
   const capturePrimarySubtitle = resumableJourneyInput
-    ? "再拍新的一页，我继续安排下一条学习路线"
-    : "系统先识别内容，再安排孩子能开始的第一步";
+    ? "再拍新的一页，我继续接住"
+    : "拍一页，马上开始第一步";
   const captureEntryHint = resumableJourneyInput
-    ? "拍照始终是主入口，刚拍下的一页会在下面自动续上"
-    : "拍照学习是整个产品的起点";
+    ? "拍照始终是主入口，刚拍的这一页会自动续上"
+    : "拍照学习是主入口";
   const journeyHeadline =
     homePhase === "resume_session"
       ? `继续第 ${step}/${Math.max(totalSteps, 1)} 步`
@@ -213,8 +213,8 @@ export function HomeScreen({ navigation, route }: Props) {
       : homePhase === "open_review_focus"
         ? `${journeyLessonTitle} 刚学完，先用眼前这 1 题把它收住。`
         : resumableJourneyInput
-          ? `${routeFocusLabel} · ${routeChallenge}`
-          : "课文页、阅读题、作文题、生字词，都能直接拍下来开始学。";
+          ? `刚拍的这一页已经接住了。${routeChallenge}`
+          : "课文页、阅读题、作文题、生字词，都能直接拍下来开始。";
 
   const refreshing =
     progressQuery.isRefetching ||
