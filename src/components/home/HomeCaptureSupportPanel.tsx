@@ -83,7 +83,7 @@ export function HomeCaptureSupportPanel({
           <Text style={styles.routeFocusBody}>
             {latestInput
               ? `刚拍：${latestInput.title} · ${latestInput.primaryChallenge}`
-              : `${childGradeLabel} · ${focusLabel}优先，不用先判断类型，拍下来就行。`}
+              : `${childGradeLabel} · ${focusLabel}优先，不用先判断类型。`}
           </Text>
         </View>
 
@@ -105,7 +105,7 @@ export function HomeCaptureSupportPanel({
 
         <View style={styles.captureOutcomeStrip}>
           <Ionicons name="checkmark-circle" size={16} color={colors.primary600} />
-          <Text style={styles.captureOutcomeStripText}>拍完自动接上：讲解、短练习、温和复习。</Text>
+          <Text style={styles.captureOutcomeStripText}>拍完自动接上：讲解 · 短练习 · 温和复习。</Text>
         </View>
       </View>
 

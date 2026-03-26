@@ -53,8 +53,9 @@ export function HomeJourneyCard({
         <Text style={textStyles.title}>现在只做这一件事</Text>
         <StatusChip label={statusLabel} tone={statusTone} />
       </View>
+
       <View style={styles.focusCard}>
-        <Text style={styles.focusLabel}>现在就做</Text>
+        <Text style={styles.focusLabel}>现在先做</Text>
         <Text style={styles.focusTitle}>{headline}</Text>
         <Text style={styles.focusBody}>{body}</Text>
         <View style={styles.focusActionWrap}>
@@ -62,40 +63,58 @@ export function HomeJourneyCard({
         </View>
       </View>
 
-      <Text style={styles.progressLabel}>这页进度</Text>
+      <View style={styles.progressHeader}>
+        <Text style={styles.progressLabel}>这页进度</Text>
+        <Text style={styles.footnote}>{footnote}</Text>
+      </View>
       <View style={styles.track}>
-        <View style={[styles.step, inputDone && styles.stepDone]}>
-          <View style={styles.stepTop}>
-            <Text style={styles.stepTitle}>拍到这页</Text>
-            <StatusChip label={inputStatusLabel} tone="primary" />
+        <View style={styles.trackSegment}>
+          <View style={[styles.step, inputDone && styles.stepDone]}>
+            <View style={styles.stepIndexWrap}>
+              <Text style={[styles.stepIndex, inputDone && styles.stepIndexDone]}>1</Text>
+            </View>
+            <View style={styles.stepTop}>
+              <Text style={styles.stepTitle}>拍到这页</Text>
+              <StatusChip label={inputStatusLabel} tone="primary" />
+            </View>
+            <Text style={styles.stepMeta} numberOfLines={1}>
+              {inputMeta}
+            </Text>
           </View>
-          <Text style={styles.stepMeta} numberOfLines={2}>
-            {inputMeta}
-          </Text>
         </View>
+        <View style={styles.trackConnector} />
 
-        <View style={[styles.step, learningDone && styles.stepDone]}>
-          <View style={styles.stepTop}>
-            <Text style={styles.stepTitle}>开始学习</Text>
-            <StatusChip label={learningStatusLabel} tone={learningTone} />
+        <View style={styles.trackSegment}>
+          <View style={[styles.step, learningDone && styles.stepDone]}>
+            <View style={styles.stepIndexWrap}>
+              <Text style={[styles.stepIndex, learningDone && styles.stepIndexDone]}>2</Text>
+            </View>
+            <View style={styles.stepTop}>
+              <Text style={styles.stepTitle}>开始学习</Text>
+              <StatusChip label={learningStatusLabel} tone={learningTone} />
+            </View>
+            <Text style={styles.stepMeta} numberOfLines={1}>
+              {learningDisplay}
+            </Text>
           </View>
-          <Text style={styles.stepMeta} numberOfLines={2}>
-            {learningDisplay}
-          </Text>
         </View>
+        <View style={styles.trackConnector} />
 
-        <View style={[styles.step, reviewDone && styles.stepDone]}>
-          <View style={styles.stepTop}>
-            <Text style={styles.stepTitle}>收一下</Text>
-            <StatusChip label={reviewStatusLabel} tone={reviewTone} />
+        <View style={styles.trackSegment}>
+          <View style={[styles.step, reviewDone && styles.stepDone]}>
+            <View style={styles.stepIndexWrap}>
+              <Text style={[styles.stepIndex, reviewDone && styles.stepIndexDone]}>3</Text>
+            </View>
+            <View style={styles.stepTop}>
+              <Text style={styles.stepTitle}>收一下</Text>
+              <StatusChip label={reviewStatusLabel} tone={reviewTone} />
+            </View>
+            <Text style={styles.stepMeta} numberOfLines={1}>
+              {reviewMeta}
+            </Text>
           </View>
-          <Text style={styles.stepMeta} numberOfLines={2}>
-            {reviewMeta}
-          </Text>
         </View>
       </View>
-
-      <Text style={styles.footnote}>{footnote}</Text>
     </AppCard>
   );
 }
@@ -135,17 +154,34 @@ const styles = StyleSheet.create({
   focusActionWrap: {
     marginTop: spacing.xs,
   },
+  progressHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+  },
   progressLabel: {
     ...textStyles.meta,
     color: colors.textSecondary,
   },
   track: {
     flexDirection: "row",
+    alignItems: "stretch",
     gap: spacing.sm,
   },
-  step: {
+  trackSegment: {
     flex: 1,
     minWidth: 0,
+  },
+  trackConnector: {
+    alignSelf: "center",
+    width: 10,
+    height: 2,
+    borderRadius: 999,
+    backgroundColor: colors.borderLight,
+    marginTop: 20,
+  },
+  step: {
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.borderSoft,
@@ -157,6 +193,22 @@ const styles = StyleSheet.create({
     borderColor: colors.primary200,
     backgroundColor: colors.primary50,
   },
+  stepIndexWrap: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.bgBase,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stepIndex: {
+    ...textStyles.meta,
+    color: colors.textSecondary,
+    fontWeight: "700",
+  },
+  stepIndexDone: {
+    color: colors.primary700,
+  },
   stepTop: {
     gap: spacing.xxs,
   },
@@ -167,10 +219,11 @@ const styles = StyleSheet.create({
   stepMeta: {
     ...textStyles.caption,
     color: colors.textSecondary,
-    minHeight: 32,
   },
   footnote: {
     ...textStyles.caption,
     color: colors.textTertiary,
+    textAlign: "right",
+    flexShrink: 1,
   },
 });

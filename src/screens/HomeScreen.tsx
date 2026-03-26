@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trackEvent } from "../analytics/tracker";
-import { analyzeContentApi, getApiModeLabel } from "../api/service";
+import { analyzeContentApi } from "../api/service";
 import { MascotBuddy } from "../components/MascotBuddy";
 import { StatusChip } from "../components/StatusChip";
 import { HomeCaptureConfirmSheet } from "../components/home/HomeCaptureConfirmSheet";
@@ -163,12 +163,7 @@ export function HomeScreen({ navigation, route }: Props) {
     resumableJourneyInput?.title ??
     launchLesson?.title ??
     "这份内容";
-  const routeFocusLabel = resumableJourneyInput?.routeLabel ?? "当前学习路线";
   const routeFocusStep = resumableJourneyInput?.recommendedEntryStep ?? "先拍不会的这一页";
-  const routeChallenge =
-    latestInput && latestInput.id === resumableJourneyInput?.id
-      ? latestInput.primaryChallenge
-      : "课文页、阅读题、作文题、生字词都能直接拍。";
   const heroTitle =
     homePhase === "resume_session"
       ? "这一页，继续往下学"
@@ -199,22 +194,6 @@ export function HomeScreen({ navigation, route }: Props) {
   const captureEntryHint = resumableJourneyInput
     ? "拍照始终是主入口，刚拍的这一页会自动续上"
     : "拍照学习是主入口";
-  const journeyHeadline =
-    homePhase === "resume_session"
-      ? `继续第 ${step}/${Math.max(totalSteps, 1)} 步`
-      : homePhase === "open_review_focus"
-        ? "先做 1 题温和复习"
-        : resumableJourneyInput
-          ? `先做「${routeFocusStep}」`
-          : "先拍不会的这一页";
-  const journeyBody =
-    homePhase === "resume_session"
-      ? `${journeyLessonTitle} 已经接上了，学完这一轮会自动转到温和复习。`
-      : homePhase === "open_review_focus"
-        ? `${journeyLessonTitle} 刚学完，先用眼前这 1 题把它收住。`
-        : resumableJourneyInput
-          ? `刚拍的这一页已经接住了。${routeChallenge}`
-          : "课文页、阅读题、作文题、生字词，都能直接拍下来开始。";
 
   const refreshing =
     progressQuery.isRefetching ||
@@ -622,8 +601,8 @@ export function HomeScreen({ navigation, route }: Props) {
         <HomeJourneyCard
           statusLabel={homeJourney.statusLabel}
           statusTone={homeJourney.statusTone}
-          headline={journeyHeadline}
-          body={journeyBody}
+          headline={homeJourney.headline}
+          body={homeJourney.body}
           inputDone={homeJourney.inputDone}
           inputMeta={homeJourney.inputMeta}
           inputStatusLabel={homeJourney.inputStatusLabel}
@@ -638,14 +617,14 @@ export function HomeScreen({ navigation, route }: Props) {
           footnote={
             resumableJourneyInput
               ? `最近更新：${getRelativeInputTimeLabel(resumableJourneyInput.createdAt)}`
-              : "主线会在拍照或上传后自动建立"
+              : "拍到这页后主线会自动出现"
           }
           actionLabel={journeyPrimaryAction.label}
           onAction={journeyPrimaryAction.onPress}
         />
 
         <Text style={styles.homeFootnote}>
-          已完成 {completedLessons} 次学习，提醒时间 {reminderText}，数据源：{getApiModeLabel()}
+          今天已学 {completedLessons} 次，晚上 {reminderText} 提醒。
         </Text>
       </ScrollView>
 

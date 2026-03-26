@@ -142,60 +142,58 @@ export function buildHomeJourneyPresentation(
 
   return {
     statusLabel:
-      phase === "learning" ? "学习中" : phase === "closed_loop" ? "已闭环" : "自动续上",
+      phase === "learning"
+        ? "学习中"
+        : phase === "review_due"
+          ? "待复习"
+          : phase === "closed_loop"
+            ? "已收好"
+            : inputDone
+              ? "已接住"
+              : "待开始",
     statusTone: phase === "learning" || phase === "review_due" ? "accent" : "primary",
     headline:
       phase === "learning"
-        ? "继续把这份内容学完"
+        ? "继续这一步"
         : phase === "review_due"
-          ? "学习已完成，下一步做温和复习"
+          ? "先收这 1 题"
           : inputDone
-            ? "这份内容已经收好，直接开始学"
-            : "先拍一页，主线就会开始",
+            ? "先从第一步开始"
+            : "先拍不会的这一页",
     body:
       phase === "learning"
-        ? `${args.childDisplayName ?? "孩子"} 正在学「${lessonTitle}」，剩下的步骤不多了。`
+        ? `${args.childDisplayName ?? "孩子"} 正在学「${lessonTitle}」，继续往下就行。`
         : phase === "review_due"
-          ? `刚学完「${lessonTitle}」，现在最适合做 ${args.pendingReviewCount} 项温和复习。`
+          ? `刚学完「${lessonTitle}」，先把眼前这一题收住。`
           : inputDone
-            ? `基于「${inputTitle}」已经排好学习路线，下次打开也能从这里续上。`
-            : "拍照或上传后，系统会自动识别内容，并把今天的学习路线和下一步动作串起来。",
+            ? `「${inputTitle}」这一页已经接住了，直接从第一步开始。`
+            : "孩子卡在哪一页，就拍哪一页。",
     inputDone,
-    inputMeta: inputDone ? `${inputSourceLabel} · ${inputTitle}` : "拍照或上传后自动记录",
+    inputMeta: inputDone ? `${inputSourceLabel} · ${inputTitle}` : "还没有拍到新的内容",
     inputStatusLabel: inputDone ? "已输入" : "待输入",
     learningDone: phase === "learning" || learningDone || inputDone,
     learningDisplay:
-      lessonTitle !== "当前内容"
-        ? `${lessonTitle} · ${
-            phase === "learning"
-              ? `第 ${args.sessionStep}/${Math.max(args.sessionTotalSteps, 1)} 步`
-              : learningDone
-                ? "已完成"
-                : inputDone
-                  ? `${generatedTaskCount} 步任务`
-                  : "识别后开始"
-          }`
-        : phase === "learning"
-          ? `第 ${args.sessionStep}/${Math.max(args.sessionTotalSteps, 1)} 步`
-          : learningDone
-            ? "已完成"
-            : inputDone
-              ? `${generatedTaskCount} 步任务`
-              : "识别后开始",
+      phase === "learning"
+        ? `第 ${args.sessionStep}/${Math.max(args.sessionTotalSteps, 1)} 步`
+        : learningDone
+          ? "已学完"
+          : inputDone
+            ? `${generatedTaskCount} 步任务`
+            : "等拍完再开始",
     learningStatusLabel:
       phase === "learning" ? "进行中" : learningDone ? "已学完" : inputDone ? "待开始" : "未开始",
     reviewDone,
     reviewMeta:
       args.pendingReviewCount > 0
-        ? `${args.pendingReviewCount} 项待巩固`
+        ? `先收 ${args.pendingReviewCount} 题`
         : lastCompletedReview
-          ? `已完成 ${lastCompletedReview.completedCount} 题`
+          ? `已收 ${lastCompletedReview.completedCount} 题`
           : learningDone
-            ? "学完后自动出现"
-            : "暂未开始",
+            ? "学完后会自动接上"
+            : "还没到这一步",
     reviewStatusLabel:
       args.pendingReviewCount > 0
-        ? `${args.pendingReviewCount} 待复习`
+        ? "待复习"
         : lastCompletedReview
           ? "已复习"
           : learningDone
@@ -207,8 +205,8 @@ export function buildHomeJourneyPresentation(
         : phase === "review_due"
           ? { kind: "open_review_focus", label: "去做温和复习" }
           : inputDone
-            ? { kind: "start_content", label: "开始这份内容" }
-            : { kind: "capture", label: "回到拍照入口" },
+            ? { kind: "start_content", label: "开始这一页" }
+            : { kind: "capture", label: "去拍这一页" },
     secondaryAction:
       phase === "learning"
         ? {
@@ -220,17 +218,17 @@ export function buildHomeJourneyPresentation(
         : phase === "review_due"
           ? {
               kind: "open_review_focus",
-              title: "去复习",
+              title: "先收一下",
               subtitle: `${args.pendingReviewCount} 项待巩固`,
               icon: "refresh-circle-outline",
             }
           : inputDone
             ? {
-                kind: "start_content",
-                title: "开始内容",
-                subtitle: `${generatedTaskCount} 步任务`,
-                icon: "play-circle-outline",
-              }
+              kind: "start_content",
+              title: "开始这一页",
+              subtitle: `${generatedTaskCount} 步任务`,
+              icon: "play-circle-outline",
+            }
             : args.pendingReviewCount > 0
               ? {
                   kind: "open_review",
