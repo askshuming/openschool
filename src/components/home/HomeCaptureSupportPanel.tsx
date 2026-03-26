@@ -69,12 +69,12 @@ export function HomeCaptureSupportPanel({
           <View style={styles.heroPromiseIcon}>
             <Ionicons name="sparkles-outline" size={16} color={colors.primary600} />
           </View>
-          <Text style={styles.heroPromiseText}>孩子卡在哪一页，就拍哪一页。怎么判断内容、先学什么，都交给系统。</Text>
+          <Text style={styles.heroPromiseText}>孩子卡在哪一页，就拍哪一页。先学什么，我来安排。</Text>
         </View>
 
         <View style={styles.routeFocusCard}>
           <View style={styles.routeFocusTop}>
-            <Text style={styles.routeFocusLabel}>{latestInput ? "这次会先带到这里" : "这些场景都能直接拍"}</Text>
+            <Text style={styles.routeFocusLabel}>{latestInput ? "拍完先走这一步" : "这 4 类都能直接拍"}</Text>
             {latestInput ? <StatusChip label={latestInput.routeLabel} tone="primary" /> : null}
           </View>
           <Text style={styles.routeFocusTitle}>
@@ -82,8 +82,8 @@ export function HomeCaptureSupportPanel({
           </Text>
           <Text style={styles.routeFocusBody}>
             {latestInput
-              ? `${getContentTypeLabel(latestInput.contentType)} · ${getRelativeInputTimeLabel(latestInput.createdAt)} · ${latestInput.primaryChallenge}`
-              : `${childGradeLabel} · ${focusLabel}优先，不用先判断类型，系统会自动安排第一步。`}
+              ? `刚拍：${latestInput.title} · ${latestInput.primaryChallenge}`
+              : `${childGradeLabel} · ${focusLabel}优先，不用先判断类型，拍下来就行。`}
           </Text>
         </View>
 
@@ -105,7 +105,7 @@ export function HomeCaptureSupportPanel({
 
         <View style={styles.captureOutcomeStrip}>
           <Ionicons name="checkmark-circle" size={16} color={colors.primary600} />
-          <Text style={styles.captureOutcomeStripText}>拍完会自动接上：讲解、短练习、温和复习。</Text>
+          <Text style={styles.captureOutcomeStripText}>拍完自动接上：讲解、短练习、温和复习。</Text>
         </View>
       </View>
 
