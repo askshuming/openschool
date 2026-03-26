@@ -13,7 +13,7 @@ interface ParentHeroCardProps {
   body: string;
   childGradeLabel: string;
   focusLabel: string;
-  uploadedTextbookLabel?: string;
+  uploadedTextbookLabel: string | null;
   mascotState: MascotState;
   mascotSpeech: string;
   primaryAction: {

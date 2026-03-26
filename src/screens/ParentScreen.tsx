@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -26,14 +25,17 @@ import { AppButton } from "../components/AppButton";
 import { AppCard } from "../components/AppCard";
 import { MascotState } from "../components/MascotBuddy";
 import { ParentDetailSection } from "../components/parent/ParentDetailSection";
+import { ParentGrowthCard } from "../components/parent/ParentGrowthCard";
 import { ParentHeroCard } from "../components/parent/ParentHeroCard";
 import { ParentJourneyCard } from "../components/parent/ParentJourneyCard";
 import { ParentLatestInputCard } from "../components/parent/ParentLatestInputCard";
+import { ParentMetricsGrid } from "../components/parent/ParentMetricsGrid";
+import { ParentProfileCard } from "../components/parent/ParentProfileCard";
 import { StatusChip } from "../components/StatusChip";
 import { ScreenErrorState } from "../components/states/ScreenErrorState";
 import { ScreenLoadingState } from "../components/states/ScreenLoadingState";
 import { ScreenOfflineState } from "../components/states/ScreenOfflineState";
-import { colors, radius, shadow, spacing } from "../design/tokens";
+import { colors, spacing } from "../design/tokens";
 import { layoutStyles, textStyles } from "../design/theme";
 import { useCatalog } from "../hooks/useCatalog";
 import { useGuardianConsentRecord } from "../hooks/useGuardianConsentRecord";
@@ -82,29 +84,6 @@ function recitationSegmentLabel(segmentId: string) {
 
 const durationLimitOptions = [10, 15, 20, 30] as const;
 const reminderTimeOptions = ["18:30", "19:00", "19:30", "20:00"] as const;
-
-function MetricTile({
-  icon,
-  label,
-  value,
-  meta,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  value: string;
-  meta: string;
-}) {
-  return (
-    <View style={styles.metricTile}>
-      <View style={styles.metricIcon}>
-        <Ionicons name={icon} size={18} color={colors.primary600} />
-      </View>
-      <Text style={styles.metricLabel}>{label}</Text>
-      <Text style={styles.metricValue}>{value}</Text>
-      <Text style={styles.metricMeta}>{meta}</Text>
-    </View>
-  );
-}
 
 type Props = BottomTabScreenProps<AppTabParamList, "Parent">;
 
@@ -316,7 +295,7 @@ export function ParentScreen({ navigation }: Props) {
   const resumableInput = journeyInput ?? latestInput;
   const latestTextbookInput = recentInputs.find((item) => item.contentType === "textbook") ?? null;
   const uploadedTextbookLabel =
-    childProfile?.textbookVersion?.trim() || latestTextbookInput?.textbookVersion?.trim();
+    childProfile?.textbookVersion?.trim() || latestTextbookInput?.textbookVersion?.trim() || null;
   const focusLabel = childProfile?.interests?.[0] ?? "综合";
   const childDisplayName = childProfile?.nickname ?? "孩子";
   const childGradeLabel = childProfile?.grade
@@ -497,12 +476,12 @@ export function ParentScreen({ navigation }: Props) {
         secondaryAction={heroSecondaryAction}
       />
 
-      <View style={styles.metricGrid}>
-        <MetricTile icon="school-outline" label="本周学习" value={`${report.weeklyCompletedLessons}`} meta="次内容学习" />
-        <MetricTile icon="time-outline" label="平均时长" value={`${report.averageDurationMin}`} meta="分钟 / 次" />
-        <MetricTile icon="sparkles-outline" label="掌握能力" value={`${progress.masteredTags.length}`} meta="项已稳定" />
-        <MetricTile icon="refresh-circle-outline" label="待复习" value={`${pendingReviewCount}`} meta="项温和巩固" />
-      </View>
+      <ParentMetricsGrid
+        weeklyCompletedLessons={report.weeklyCompletedLessons}
+        avgStudyMinutes={report.averageDurationMin}
+        masteredCount={progress.masteredTags.length}
+        pendingReviewCount={pendingReviewCount}
+      />
 
       <ParentJourneyCard
         currentJourneyStatus={currentJourneyStatus}
@@ -541,20 +520,12 @@ export function ParentScreen({ navigation }: Props) {
         }
       />
 
-      <AppCard style={styles.profileCard}>
-        <View style={styles.rowBetween}>
-          <Text style={textStyles.title}>孩子档案</Text>
-          <StatusChip label={childGradeLabel} tone="primary" />
-        </View>
-        <Text style={styles.profileName}>{childDisplayName}</Text>
-        <View style={styles.metaRow}>
-          <StatusChip label={`当前重点：${focusLabel}`} />
-          {uploadedTextbookLabel ? <StatusChip label={`教材：${uploadedTextbookLabel}`} tone="accent" /> : null}
-        </View>
-        {!uploadedTextbookLabel ? (
-          <Text style={styles.meta}>未上传教材时，不展示教材信息；上传练习题、板书或图片也能自动安排学习内容。</Text>
-        ) : null}
-      </AppCard>
+      <ParentProfileCard
+        childGradeLabel={childGradeLabel}
+        childDisplayName={childDisplayName}
+        focusLabel={focusLabel}
+        uploadedTextbookLabel={uploadedTextbookLabel}
+      />
 
       {latestInput ? (
         <ParentLatestInputCard
@@ -565,31 +536,13 @@ export function ParentScreen({ navigation }: Props) {
         />
       ) : null}
 
-      <AppCard style={styles.growthCard}>
-        <View style={styles.rowBetween}>
-          <Text style={textStyles.title}>这周成长</Text>
-          <StatusChip label={`${report.recitation.completedCount} 次朗读`} tone="primary" />
-        </View>
-        <Text style={styles.growthLead}>
-          {progress.masteredTags.length > 0
-            ? `已经稳定掌握 ${progress.masteredTags.length} 项能力，继续保持这个节奏。`
-            : "刚开始建立学习节奏，先从拍一页开始就够了。"}
-        </Text>
-        <View style={styles.metaRow}>
-          {progress.masteredTags.length > 0 ? (
-            progress.masteredTags.slice(0, 4).map((tag) => (
-              <StatusChip key={tag} label={skillLabelMap[tag]} tone="primary" />
-            ))
-          ) : (
-            <StatusChip label="掌握能力会在学习后出现" />
-          )}
-        </View>
-        <Text style={styles.meta}>
-          高频问题：字词没懂 {Math.round(report.errorDistribution.vocab_unknown * 100)}% · 证据句没找到{" "}
-          {Math.round(report.errorDistribution.evidence_missed * 100)}% · 主旨偏差{" "}
-          {Math.round(report.errorDistribution.main_idea_off * 100)}%
-        </Text>
-      </AppCard>
+      <ParentGrowthCard
+        recitationCompletedCount={report.recitation.completedCount}
+        masteredSkillLabels={progress.masteredTags.map((tag) => skillLabelMap[tag])}
+        vocabUnknownRate={report.errorDistribution.vocab_unknown}
+        evidenceMissedRate={report.errorDistribution.evidence_missed}
+        mainIdeaOffRate={report.errorDistribution.main_idea_off}
+      />
 
       <AppCard style={styles.card}>
         <Text style={textStyles.title}>详细设置与数据</Text>
@@ -915,68 +868,7 @@ const styles = StyleSheet.create({
     padding: spacing.pageHorizontal,
     gap: spacing.md,
   },
-  metricGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-  },
-  metricTile: {
-    minWidth: "47%",
-    flex: 1,
-    borderRadius: radius.lg,
-    backgroundColor: colors.bgCard,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    padding: spacing.sm,
-    gap: spacing.xxs,
-    ...shadow.card,
-  },
-  metricIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.primary50,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 2,
-  },
-  metricLabel: {
-    ...textStyles.meta,
-    color: colors.textSecondary,
-  },
-  metricValue: {
-    ...textStyles.h2,
-    color: colors.textPrimary,
-    fontSize: 26,
-    lineHeight: 30,
-  },
-  metricMeta: {
-    ...textStyles.caption,
-    color: colors.textTertiary,
-  },
-  profileCard: {
-    gap: spacing.sm,
-  },
-  profileName: {
-    ...textStyles.h2,
-    color: colors.textPrimary,
-    fontSize: 26,
-    lineHeight: 30,
-  },
-  growthCard: {
-    gap: spacing.sm,
-  },
-  growthLead: {
-    ...textStyles.body,
-    color: colors.textSecondary,
-  },
   card: {
-    gap: spacing.sm,
-  },
-  rowBetween: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
     gap: spacing.sm,
   },
   metaRow: {
