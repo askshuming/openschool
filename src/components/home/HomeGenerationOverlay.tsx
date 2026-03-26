@@ -75,20 +75,20 @@ export function HomeGenerationOverlay({
         >
           <View style={styles.generationHandle} />
           <View style={styles.generationHeader}>
-            <Text style={styles.generationTitle}>正在把这一页变成可开始的学习</Text>
+            <Text style={styles.generationTitle}>正在准备这一页的第一步</Text>
             <View style={styles.generationHeaderAside}>
               <MascotBuddy
                 state={currentStepIndex >= 2 ? "wow" : "teacher"}
                 size={68}
-                speech={currentStepIndex >= 2 ? "马上就能开始" : "我先带到第一步"}
+                speech={currentStepIndex >= 2 ? "马上开始" : "我先接住这一页"}
               />
               <StatusChip label={activeStepLabel} tone="accent" />
             </View>
           </View>
           <Text style={styles.generationLead}>
             {activeInput
-              ? `${sourceLabel}已收到「${activeInput.title}」，系统正在看清这一页，并准备最合适的开始方式。`
-              : "这一页已经收到，系统正在准备最合适的开始方式。"}
+              ? `${sourceLabel}已收到「${activeInput.title}」，马上会直接进入「${activeInput.recommendedEntryStep}」。`
+              : "这一页已经收到，马上会直接进入最该开始的第一步。"}
           </Text>
 
           {activeInput ? (
@@ -119,7 +119,7 @@ export function HomeGenerationOverlay({
                 </Text>
                 {activeInput.recognizedTextSnippet ? (
                   <Text style={styles.generationInputSnippet} numberOfLines={2}>
-                    识别到：{activeInput.recognizedTextSnippet}
+                    这页内容：{activeInput.recognizedTextSnippet}
                   </Text>
                 ) : null}
               </View>
@@ -160,14 +160,14 @@ export function HomeGenerationOverlay({
           })}
 
           <View style={styles.generationPreview}>
-            <Text style={styles.generationPreviewMeta}>马上先做</Text>
+            <Text style={styles.generationPreviewMeta}>马上先做这一小步</Text>
             <Text style={styles.generationPreviewTitle}>
               {activeInput ? activeInput.recommendedEntryStep : "先判断这页卡在哪里"}
             </Text>
             <Text style={styles.generationPreviewText}>
               {activeInput
-                ? `${activeInput.routeLabel} · ${activeInput.primaryChallenge}`
-                : "系统会先判断这页属于哪种常见学习场景，再安排正确的第一步。"}
+                ? `${activeInput.primaryChallenge} · 后面的短练习和温和复习会自动接上`
+                : "系统会先看清这一页，再安排正确的第一步。"}
             </Text>
           </View>
         </Animated.View>

@@ -275,19 +275,19 @@ export function HomeScreen({ navigation, route }: Props) {
 
   const generationPromises = [
     {
-      title: "先看清这一页",
+      title: "看清这一页",
       detail: activeGeneratedInput
         ? `${getContentTypeLabel(activeGeneratedInput.contentType)} · ${activeGeneratedInput.title}`
-        : "系统先把这一页看清楚",
+        : "先把这一页看清楚",
     },
     {
-      title: "再找出孩子卡在哪里",
+      title: "找到先学的点",
       detail: activeGeneratedInput
         ? `${activeGeneratedInput.routeLabel} · ${activeGeneratedInput.primaryChallenge}`
         : `${childGradeLabel} · ${focusLabel}优先 · ${readingLevelLabel}`,
     },
     {
-      title: "最后直接带到第一步",
+      title: "直接开始",
       detail: activeGeneratedInput
         ? `${activeGeneratedInput.recommendedEntryStep} · 共 ${activeGeneratedInput.generatedTaskCount} 步`
         : "会直接安排成孩子现在能开始的 3-5 步学习路线",

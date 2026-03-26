@@ -33,9 +33,9 @@ export function HomeCaptureConfirmSheet({
         <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
         <View style={styles.sheet}>
           <View style={styles.handle} />
-          <Text style={styles.title}>确认一下，就是这一页</Text>
+          <Text style={styles.title}>拍好了，就从这一页开始</Text>
           <Text style={styles.subtitle}>
-            只要这页没拍错，下面直接开始。内容类型、卡点判断和学习路线都交给系统。
+            只要这页没拍错，下面直接开始。不用先判断题型，也不用自己决定先学什么。
           </Text>
 
           {previewInput ? (
@@ -53,7 +53,7 @@ export function HomeCaptureConfirmSheet({
               )}
 
               <View style={styles.previewContent}>
-                <Text style={styles.previewLabel}>刚刚选中的内容</Text>
+                <Text style={styles.previewLabel}>刚拍的这一页</Text>
                 <Text style={styles.previewTitle} numberOfLines={1}>
                   {previewInput.title}
                 </Text>
@@ -62,7 +62,7 @@ export function HomeCaptureConfirmSheet({
                   {previewInput.fileSize ? ` · ${getReadableFileSizeLabel(previewInput.fileSize)}` : ""}
                 </Text>
                 <Text style={styles.previewBody} numberOfLines={2}>
-                  这页看起来属于「{previewInput.routeLabel}」，会先做「{previewInput.recommendedEntryStep}」。
+                  系统会先带孩子做「{previewInput.recommendedEntryStep}」，后面的短练习和温和复习会自动接上。
                 </Text>
               </View>
             </View>
@@ -71,11 +71,11 @@ export function HomeCaptureConfirmSheet({
           <View style={styles.checklist}>
             <View style={styles.checkItem}>
               <Ionicons name="checkmark-circle" size={18} color={colors.primary600} />
-              <Text style={styles.checkText}>不用先判断是课文、题目还是字词页</Text>
+              <Text style={styles.checkText}>不用先判断是课文、阅读题、作文题还是字词页</Text>
             </View>
             <View style={styles.checkItem}>
               <Ionicons name="checkmark-circle" size={18} color={colors.primary600} />
-              <Text style={styles.checkText}>进入后会直接从最应该开始的第一步学起</Text>
+              <Text style={styles.checkText}>进入后会直接从孩子现在最该开始的第一步学起</Text>
             </View>
           </View>
 
