@@ -11,6 +11,7 @@ import { clearSessionCache, finishSessionApi } from "../api/service";
 import { MascotState } from "../components/MascotBuddy";
 import { ProgressHeader } from "../components/ProgressHeader";
 import { LearningActionDock } from "../components/session/LearningActionDock";
+import { LearningArrivalCard } from "../components/session/LearningArrivalCard";
 import { LearningCompletionBridgeCard } from "../components/session/LearningCompletionBridgeCard";
 import { LearningFlowCard } from "../components/session/LearningFlowCard";
 import { LearningStepCard } from "../components/session/LearningStepCard";
@@ -373,6 +374,7 @@ export function LearningSessionScreen({ navigation, route }: Props) {
   const currentStrategy = card ? cardStrategyMap[card.type] : "系统正在安排当前最适合的一步";
   const currentStepLabel = `第 ${currentVisibleStep} 步`;
   const learningCue = card ? getLearningCue(card) : null;
+  const isFirstVisibleStep = currentVisibleStep === 1;
 
   useEffect(() => {
     if (!sessionQuery.data) {
@@ -557,6 +559,8 @@ export function LearningSessionScreen({ navigation, route }: Props) {
     ? "再试一次"
     : showRecitationRetryActions
       ? "再读一次"
+      : isFirstVisibleStep
+        ? "开始学"
       : isQuiz && answerResult?.correct
         ? "答对啦"
         : isRecitation && recitationDone && recitationAssessment?.isCorrect
@@ -568,6 +572,16 @@ export function LearningSessionScreen({ navigation, route }: Props) {
     ? "这一步先别急，我陪你再做一遍"
     : showRecitationRetryActions
       ? "再读一遍，就会更顺"
+      : isFirstVisibleStep
+        ? isQuiz && !answerResult
+          ? "先做眼前这一题"
+          : isRecitation
+            ? recitationRecognizing
+              ? "我在听这一遍，马上给你结果"
+              : recitationDone
+                ? "这一遍已经完成，可以继续"
+                : "先跟着读一遍"
+            : "从这一步开始，我带着往下学"
       : isLast
         ? "这节已经学完，回首页就能接上复习"
         : isQuiz && !answerResult
@@ -585,6 +599,10 @@ export function LearningSessionScreen({ navigation, route }: Props) {
     ? "看一下上面的鼓励提示，再选一次就行。"
     : showRecitationRetryActions
       ? "先听一遍示范，再完整读一遍。"
+      : isFirstVisibleStep
+        ? latestInput
+          ? "不用自己判断内容类型。先把这一步做完，我继续带下一步。"
+          : "先把这一步做完，我继续带下一步。"
       : isLast
         ? "学完后首页主线会自动切到这次内容的温和复习。"
         : isQuiz && answerResult?.correct
@@ -623,6 +641,9 @@ export function LearningSessionScreen({ navigation, route }: Props) {
           currentStep={currentVisibleStep}
           totalSteps={visibleTotalSteps}
         />
+        {latestInput && isFirstVisibleStep ? (
+          <LearningArrivalCard latestInput={latestInput} childNickname={childProfile?.nickname} />
+        ) : null}
         <LearningFlowCard
           showDetails={showFlowDetails}
           onToggle={() => setShowFlowDetails((prev) => !prev)}

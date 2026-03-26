@@ -34,10 +34,10 @@ export function LearningFlowCard({
   currentStrategy,
 }: LearningFlowCardProps) {
   const collapsedHeadline = latestInput
-    ? `先做「${latestInput.recommendedEntryStep}」`
+    ? `这节先从「${latestInput.recommendedEntryStep}」开始`
     : `先学「${currentCardTitle}」`;
   const collapsedMeta = latestInput
-    ? `${latestInput.routeLabel} · 当前在学「${currentCardTitle}」`
+    ? `${latestInput.routeLabel} · 不用自己判断题型`
     : `当前在学「${currentCardTitle}」`;
   const expandedTitle = childNickname
     ? `${childNickname} 的${latestInput?.routeLabel ?? "当前学习路线"}`
@@ -63,12 +63,12 @@ export function LearningFlowCard({
               <Text style={styles.flowTitle}>{expandedTitle}</Text>
               <Text style={styles.flowText}>
                 {latestInput
-                  ? `基于「${latestInput.title}」已安排。先做「${latestInput.recommendedEntryStep}」，再进入「${currentCardTitle}」。`
+                  ? `基于「${latestInput.title}」已经安排好了。跟着当前步骤往下做就行。`
                   : `当前先学「${currentCardTitle}」，其他路线说明默认收起。`}
               </Text>
             </View>
             <View style={styles.flowToggle}>
-              <Text style={styles.flowToggleText}>收起路线</Text>
+              <Text style={styles.flowToggleText}>收起</Text>
               <Ionicons name="chevron-up-outline" size={18} color={colors.primary500} />
             </View>
           </>
@@ -87,7 +87,7 @@ export function LearningFlowCard({
               </Text>
             </View>
             <View style={styles.flowToggleInline}>
-              <Text style={styles.flowToggleText}>看路线</Text>
+              <Text style={styles.flowToggleText}>看原因</Text>
               <Ionicons name="chevron-down-outline" size={18} color={colors.primary500} />
             </View>
           </>
@@ -97,7 +97,7 @@ export function LearningFlowCard({
       {showDetails ? (
         <View style={styles.flowDetails}>
           <View style={styles.flowReasonCard}>
-            <Text style={styles.flowReasonLabel}>这次为什么先学这一步</Text>
+            <Text style={styles.flowReasonLabel}>为什么先从这里开始</Text>
             <Text style={styles.flowReasonText}>
               {latestInput
                 ? `${latestInput.primaryChallenge}。所以先做「${latestInput.recommendedEntryStep}」，当前正在学「${currentCardTitle}」。`

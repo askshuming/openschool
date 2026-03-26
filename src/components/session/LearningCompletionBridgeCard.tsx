@@ -8,7 +8,7 @@ export function LearningCompletionBridgeCard() {
   return (
     <AppCard style={styles.card}>
       <View style={styles.rowTop}>
-        <Text style={styles.title}>学完这节，首页会自动接上下一步</Text>
+        <Text style={styles.title}>这一页已经带过去了</Text>
         <StatusChip label="自动续上" tone="primary" />
       </View>
       <Text style={styles.text}>

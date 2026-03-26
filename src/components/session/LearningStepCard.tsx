@@ -106,11 +106,11 @@ export function LearningStepCard({
           </View>
         ) : null}
         <View style={styles.stepFocusBlock}>
-          <Text style={styles.stepFocusLabel}>这一小步</Text>
+          <Text style={styles.stepFocusLabel}>现在只做这一件事</Text>
           <Text style={styles.stepFocusTitle}>{card.payload.title}</Text>
           {latestInputTitle ? (
             <Text style={styles.stepFocusMeta} numberOfLines={1}>
-              {`基于「${latestInputTitle}」`}
+              {`刚才那页：${latestInputTitle}`}
             </Text>
           ) : null}
         </View>
