@@ -38,31 +38,31 @@ export function ParentJourneyCard({
   return (
     <AppCard style={styles.card}>
       <View style={styles.rowBetween}>
-        <Text style={textStyles.title}>当前学习主线</Text>
+        <Text style={textStyles.title}>这次学习现在走到哪</Text>
         <StatusChip label={currentJourneyStatus} tone={statusTone} />
       </View>
       <View style={styles.focusCard}>
-        <Text style={styles.focusLabel}>现在最适合</Text>
+        <Text style={styles.focusLabel}>系统已经接成一条线</Text>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.summaryText}>{summaryText}</Text>
       </View>
       <View style={styles.track}>
         <View style={[styles.step, inputDone && styles.stepDone]}>
-          <Text style={styles.stepLabel}>输入内容</Text>
+          <Text style={styles.stepLabel}>拍到哪一页</Text>
           <Text style={styles.stepValue} numberOfLines={2}>
             {inputTitle}
           </Text>
           <Text style={styles.stepMeta}>{inputMeta}</Text>
         </View>
         <View style={[styles.step, learningDone && styles.stepDone]}>
-          <Text style={styles.stepLabel}>开始学习</Text>
+          <Text style={styles.stepLabel}>现在学到哪</Text>
           <Text style={styles.stepValue} numberOfLines={2}>
             {learningTitle}
           </Text>
           <Text style={styles.stepMeta}>{learningMeta}</Text>
         </View>
         <View style={[styles.step, reviewDone && styles.stepDone]}>
-          <Text style={styles.stepLabel}>温和复习</Text>
+          <Text style={styles.stepLabel}>接下来怎么收</Text>
           <Text style={styles.stepValue} numberOfLines={2}>
             {reviewTitle}
           </Text>

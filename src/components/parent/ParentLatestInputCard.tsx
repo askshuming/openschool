@@ -14,7 +14,7 @@ import { colors, spacing } from "../../design/tokens";
 import { textStyles } from "../../design/theme";
 
 interface ParentLatestInputCardProps {
-  latestInput: ContentInputRecord;
+  latestInput: ContentInputRecord | null;
   primaryActionLabel: string;
   onPrimaryAction: () => void;
   onHomeAction: () => void;
@@ -26,10 +26,29 @@ export function ParentLatestInputCard({
   onPrimaryAction,
   onHomeAction,
 }: ParentLatestInputCardProps) {
+  if (!latestInput) {
+    return (
+      <AppCard style={styles.card}>
+        <View style={styles.rowBetween}>
+          <Text style={textStyles.title}>最近接住的内容</Text>
+          <Text style={styles.meta}>还没有新内容</Text>
+        </View>
+        <View style={styles.focusCard}>
+          <Text style={styles.focusLabel}>现在最直接的开始方式</Text>
+          <Text style={styles.focusTitle}>先去首页拍一页</Text>
+          <Text style={styles.focusMeta}>课文页、阅读题、作文题、字词页都能直接拍，系统会自动安排学习路线。</Text>
+        </View>
+        <View style={styles.actionButtons}>
+          <AppButton label="回首页拍照" onPress={onHomeAction} />
+        </View>
+      </AppCard>
+    );
+  }
+
   return (
     <AppCard style={styles.card}>
       <View style={styles.rowBetween}>
-        <Text style={textStyles.title}>最近接住的内容</Text>
+        <Text style={textStyles.title}>刚刚接住的那一页</Text>
         <Text style={styles.meta}>{getRelativeInputTimeLabel(latestInput.createdAt)}</Text>
       </View>
       <View style={styles.focusCard}>

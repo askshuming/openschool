@@ -19,11 +19,11 @@ interface ParentHeroCardProps {
   uploadedTextbookLabel: string | null;
   mascotState: MascotState;
   mascotSpeech: string;
-  primaryAction: {
+  primaryAction?: {
     label: string;
     onPress: () => void;
   };
-  secondaryAction: {
+  secondaryAction?: {
     label: string;
     onPress: () => void;
   };
@@ -75,14 +75,16 @@ export function ParentHeroCard({
         </View>
         <MascotBuddy state={mascotState} size={104} speech={mascotSpeech} />
       </View>
-      <View style={styles.heroActionRow}>
-        <View style={styles.heroActionCell}>
-          <AppButton label={primaryAction.label} onPress={primaryAction.onPress} />
+      {primaryAction && secondaryAction ? (
+        <View style={styles.heroActionRow}>
+          <View style={styles.heroActionCell}>
+            <AppButton label={primaryAction.label} onPress={primaryAction.onPress} />
+          </View>
+          <View style={styles.heroActionCell}>
+            <AppButton label={secondaryAction.label} onPress={secondaryAction.onPress} variant="secondary" />
+          </View>
         </View>
-        <View style={styles.heroActionCell}>
-          <AppButton label={secondaryAction.label} onPress={secondaryAction.onPress} variant="secondary" />
-        </View>
-      </View>
+      ) : null}
     </LinearGradient>
   );
 }

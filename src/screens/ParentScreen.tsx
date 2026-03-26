@@ -24,6 +24,7 @@ import {
 import { AppButton } from "../components/AppButton";
 import { AppCard } from "../components/AppCard";
 import { MascotState } from "../components/MascotBuddy";
+import { ParentActionSummaryCard } from "../components/parent/ParentActionSummaryCard";
 import { ParentDetailSection } from "../components/parent/ParentDetailSection";
 import { ParentGrowthCard } from "../components/parent/ParentGrowthCard";
 import { ParentHeroCard } from "../components/parent/ParentHeroCard";
@@ -418,6 +419,46 @@ export function ParentScreen({ navigation }: Props) {
           : "看复习页",
     onPress: () => runParentJourneyAction(parentJourney.secondaryActionKind),
   };
+  const actionSummaryTitle =
+    parentJourney.primaryAction.kind === "resume_session"
+      ? "继续孩子正在学的这一页"
+      : parentJourney.primaryAction.kind === "open_review_focus"
+        ? "先把刚学完的这一页收住"
+        : parentJourney.primaryAction.kind === "start_content"
+          ? "开始刚刚接住的这一页"
+          : "先回首页拍孩子不会的那一页";
+  const actionSummaryBody =
+    parentJourney.primaryAction.kind === "resume_session"
+      ? `${parentJourney.learningMeta}。现在不用重新找内容，直接接着往下就行。`
+      : parentJourney.primaryAction.kind === "open_review_focus"
+        ? `${parentJourney.reviewMeta}。先把这一题收住，首页主线会自动跟上。`
+        : parentJourney.primaryAction.kind === "start_content"
+          ? `${resumableInput?.routeLabel ?? "这次学习路线"}已经排好了，先从「${resumableInput?.recommendedEntryStep ?? "第一步"}」开始。`
+          : "还没开始时，不用先选课。回首页拍一页，系统会自动判断内容并安排学习路线。";
+  const actionSummaryBullets =
+    parentJourney.primaryAction.kind === "resume_session"
+      ? [
+          `当前已经学到第 ${sessionStep}/${Math.max(sessionTotalSteps, 1)} 步`,
+          "不用重新判断这页该怎么学",
+          "学完后会自动接到温和复习",
+        ]
+      : parentJourney.primaryAction.kind === "open_review_focus"
+        ? [
+            "先复习眼前这一题就够了",
+            "复习完后首页会自动收住这次学习",
+            "不用重新找课程或资料",
+          ]
+        : parentJourney.primaryAction.kind === "start_content"
+          ? [
+              `基于「${resumableInput?.title ?? "最近这页内容"}」已经安排好了路线`,
+              `第一步就是「${resumableInput?.recommendedEntryStep ?? "开始当前第一步"}」`,
+              "后面的短练习和温和复习也会自动接上",
+            ]
+          : [
+              "先去首页拍孩子卡住的那一页",
+              "课文页、阅读题、作文题、字词页都能直接拍",
+              "怎么判断内容和先学什么，系统会自动处理",
+            ];
 
   function toggleDetailSection(section: keyof typeof expandedDetailSections) {
     setExpandedDetailSections((prev) => ({
@@ -509,8 +550,36 @@ export function ParentScreen({ navigation }: Props) {
         uploadedTextbookLabel={uploadedTextbookLabel}
         mascotState={parentJourney.mascotState as MascotState}
         mascotSpeech={parentJourney.heroSpeech}
+      />
+
+      <ParentActionSummaryCard
+        statusLabel={parentJourney.currentJourneyStatus}
+        statusTone={parentJourney.statusTone}
+        title={actionSummaryTitle}
+        body={actionSummaryBody}
+        bullets={actionSummaryBullets}
+        mascotState={parentJourney.mascotState as MascotState}
+        mascotSpeech={parentJourney.heroSpeech}
         primaryAction={heroPrimaryAction}
         secondaryAction={heroSecondaryAction}
+      />
+
+      <ParentProfileCard
+        childGradeLabel={childGradeLabel}
+        childDisplayName={childDisplayName}
+        focusLabel={focusLabel}
+        uploadedTextbookLabel={uploadedTextbookLabel}
+      />
+
+      <ParentLatestInputCard
+        latestInput={latestInput}
+        primaryActionLabel={
+          parentJourney.primaryAction.kind === "resume_session" ? "继续当前学习" : "开始这份内容"
+        }
+        onPrimaryAction={
+          parentJourney.primaryAction.kind === "resume_session" ? resumeSession : startResumableContent
+        }
+        onHomeAction={() => navigation.navigate("Home")}
       />
 
       <ParentJourneyCard
@@ -529,19 +598,6 @@ export function ParentScreen({ navigation }: Props) {
         reviewMeta={parentJourney.reviewMeta}
       />
 
-      {latestInput ? (
-        <ParentLatestInputCard
-          latestInput={latestInput}
-          primaryActionLabel={
-            parentJourney.primaryAction.kind === "resume_session" ? "继续当前学习" : "开始这份内容"
-          }
-          onPrimaryAction={
-            parentJourney.primaryAction.kind === "resume_session" ? resumeSession : startResumableContent
-          }
-          onHomeAction={() => navigation.navigate("Home")}
-        />
-      ) : null}
-
       <ParentGrowthCard
         recitationCompletedCount={report.recitation.completedCount}
         masteredSkillLabels={progress.masteredTags.map((tag) => skillLabelMap[tag])}
@@ -557,16 +613,9 @@ export function ParentScreen({ navigation }: Props) {
         pendingReviewCount={pendingReviewCount}
       />
 
-      <ParentProfileCard
-        childGradeLabel={childGradeLabel}
-        childDisplayName={childDisplayName}
-        focusLabel={focusLabel}
-        uploadedTextbookLabel={uploadedTextbookLabel}
-      />
-
       <AppCard style={styles.card}>
-        <Text style={textStyles.title}>更多设置与数据</Text>
-        <Text style={styles.meta}>第一页只保留状态和下一步；课程细节、家长设置、导出和删除都收在这里。</Text>
+        <Text style={textStyles.title}>家长设置与数据</Text>
+        <Text style={styles.meta}>首屏先看状态和下一步；课程细节、提醒设置、导出和删除都收在这里。</Text>
         <AppButton
           label={showAdvanced ? "收起更多内容" : "查看更多内容"}
           variant="secondary"
