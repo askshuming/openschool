@@ -7,8 +7,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActionSheetIOS,
   Animated,
-  Image,
-  Modal,
   Platform,
   Pressable,
   RefreshControl,
@@ -21,10 +19,12 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trackEvent } from "../analytics/tracker";
 import { analyzeContentApi, getApiModeLabel } from "../api/service";
-import { AppButton } from "../components/AppButton";
 import { AppCard } from "../components/AppCard";
 import { MascotBuddy } from "../components/MascotBuddy";
 import { StatusChip } from "../components/StatusChip";
+import { HomeCaptureSupportPanel } from "../components/home/HomeCaptureSupportPanel";
+import { HomeGenerationOverlay } from "../components/home/HomeGenerationOverlay";
+import { HomeJourneyCard } from "../components/home/HomeJourneyCard";
 import { ScreenErrorState } from "../components/states/ScreenErrorState";
 import { ScreenLoadingState } from "../components/states/ScreenLoadingState";
 import { ScreenOfflineState } from "../components/states/ScreenOfflineState";
@@ -43,8 +43,6 @@ import {
   getContentTypeLabel,
   getInputSourceLabel,
   getRelativeInputTimeLabel,
-  getReadableFileSizeLabel,
-  hasImagePreview,
   useContentInputStore,
 } from "../state/contentInputStore";
 import { useLearningJourneyStore } from "../state/learningJourneyStore";
@@ -440,7 +438,6 @@ export function HomeScreen({ navigation, route }: Props) {
   };
   const secondaryAction = {
     title: homeJourney.secondaryAction.title,
-    subtitle: homeJourney.secondaryAction.subtitle,
     icon: homeJourney.secondaryAction.icon,
     onPress: () => runHomeJourneyAction(homeJourney.secondaryAction.kind),
   };
@@ -857,90 +854,17 @@ export function HomeScreen({ navigation, route }: Props) {
               </Animated.View>
             </View>
 
-            <View style={styles.captureStage}>
-              <View style={styles.heroPromiseRow}>
-                <View style={styles.heroPromiseIcon}>
-                  <Ionicons name="sparkles-outline" size={16} color={colors.primary600} />
-                </View>
-                <Text style={styles.heroPromiseText}>你拍，系统识别内容并匹配学习路线，不需要手动找课。</Text>
-              </View>
-
-              <View style={styles.captureInputCompact}>
-                <View style={styles.captureInputCompactIcon}>
-                  <Ionicons
-                    name={
-                      latestInput
-                        ? latestInput.contentType === "pdf"
-                          ? "document-text-outline"
-                          : "scan-outline"
-                        : "layers-outline"
-                    }
-                    size={18}
-                    color={colors.primary500}
-                  />
-                </View>
-                <View style={styles.captureInputCompactCopy}>
-                  <Text style={styles.captureInputTitle} numberOfLines={1}>
-                    {stageSupportTitle}
-                  </Text>
-                  <Text style={styles.captureInputMeta} numberOfLines={1}>
-                    {stageSupportMeta}
-                  </Text>
-                  <Text style={styles.captureInputSummary} numberOfLines={1}>
-                    {latestInput ? stageSupportSummary : "教材页、练习题、板书、图片都能直接拍。"}
-                  </Text>
-                </View>
-                {latestInput ? (
-                  <StatusChip label={`${latestInput.generatedTaskCount} 步`} tone="accent" />
-                ) : (
-                  <View style={styles.captureInputChipRow}>
-                    {supportedInputLabels.slice(0, 2).map((item) => (
-                      <View key={item} style={styles.captureInputMiniChip}>
-                        <Text style={styles.captureInputMiniChipText}>{item}</Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-            </View>
-
-            <View style={styles.captureOutcomeCard}>
-              <Text style={styles.captureOutcomeTitle}>拍完马上得到</Text>
-              <View style={styles.captureOutcomeInline}>
-                <View style={styles.captureOutcomeBadge}>
-                  <Ionicons name="checkmark-circle" size={16} color={colors.primary600} />
-                  <Text style={styles.captureOutcomeBadgeText}>讲解</Text>
-                </View>
-                <View style={styles.captureOutcomeBadge}>
-                  <Ionicons name="checkmark-circle" size={16} color={colors.primary600} />
-                  <Text style={styles.captureOutcomeBadgeText}>短练习</Text>
-                </View>
-                <View style={styles.captureOutcomeBadge}>
-                  <Ionicons name="checkmark-circle" size={16} color={colors.primary600} />
-                  <Text style={styles.captureOutcomeBadgeText}>温和复习</Text>
-                </View>
-              </View>
-              <Text style={styles.captureOutcomeMeta}>按 {childGradeLabel} · {focusLabel} 自动适配</Text>
-            </View>
-
-            <View style={styles.captureAssistRow}>
-              <Pressable
-                hitSlop={8}
-                onPress={openUploadChooser}
-                style={({ pressed }) => [styles.captureAssistPill, pressed && styles.heroActionPressed]}
-              >
-                <Ionicons name="cloud-upload-outline" size={16} color={colors.primary500} />
-                <Text style={styles.captureAssistText}>上传内容</Text>
-              </Pressable>
-              <Pressable
-                hitSlop={8}
-                onPress={secondaryAction.onPress}
-                style={({ pressed }) => [styles.captureAssistPill, pressed && styles.heroActionPressed]}
-              >
-                <Ionicons name={secondaryAction.icon} size={16} color={colors.primary500} />
-                <Text style={styles.captureAssistText}>{secondaryAction.title}</Text>
-              </Pressable>
-            </View>
+            <HomeCaptureSupportPanel
+              latestInput={latestInput}
+              stageSupportTitle={stageSupportTitle}
+              stageSupportMeta={stageSupportMeta}
+              stageSupportSummary={stageSupportSummary}
+              supportedInputLabels={supportedInputLabels}
+              childGradeLabel={childGradeLabel}
+              focusLabel={focusLabel}
+              onUploadPress={openUploadChooser}
+              secondaryAction={secondaryAction}
+            />
           </View>
         </LinearGradient>
 
@@ -983,208 +907,44 @@ export function HomeScreen({ navigation, route }: Props) {
           </Animated.View>
         ) : null}
 
-        <AppCard style={styles.journeyCard}>
-          <View style={styles.rowTop}>
-            <Text style={textStyles.title}>今天的学习主线</Text>
-            <StatusChip
-              label={homeJourney.statusLabel}
-              tone={homeJourney.statusTone}
-            />
-          </View>
-          <View style={styles.journeyFocusCard}>
-            <Text style={styles.cardText}>{homeJourney.headline}</Text>
-            <Text style={styles.journeyLeadText}>{homeJourney.body}</Text>
-          </View>
-
-          <View style={styles.journeyMiniTrack}>
-            <View style={[styles.journeyMiniStep, homeJourney.inputDone && styles.journeyMiniStepDone]}>
-              <Text style={styles.journeyMiniTitle}>输入内容</Text>
-              <Text style={styles.journeyMiniMeta} numberOfLines={2}>
-                {homeJourney.inputMeta}
-              </Text>
-              <StatusChip label={homeJourney.inputStatusLabel} tone="primary" />
-            </View>
-
-            <View
-              style={[
-                styles.journeyMiniStep,
-                homeJourney.learningDone && styles.journeyMiniStepDone,
-              ]}
-            >
-              <Text style={styles.journeyMiniTitle}>开始学习</Text>
-              <Text style={styles.journeyMiniMeta} numberOfLines={2}>
-                {homeJourney.learningDisplay}
-              </Text>
-              <StatusChip label={homeJourney.learningStatusLabel} tone={hasInProgress ? "accent" : "primary"} />
-            </View>
-
-            <View
-              style={[
-                styles.journeyMiniStep,
-                homeJourney.reviewDone && styles.journeyMiniStepDone,
-              ]}
-            >
-              <Text style={styles.journeyMiniTitle}>温和复习</Text>
-              <Text style={styles.journeyMiniMeta} numberOfLines={2}>
-                {homeJourney.reviewMeta}
-              </Text>
-              <StatusChip label={homeJourney.reviewStatusLabel} tone={pendingReviewCount > 0 ? "accent" : "primary"} />
-            </View>
-          </View>
-
-          <View style={styles.journeyFooter}>
-            <Text style={styles.journeyFootnote}>
-              {resumableJourneyInput
-                ? `最近更新：${getRelativeInputTimeLabel(resumableJourneyInput.createdAt)}`
-                : "主线会在拍照或上传后自动建立"}
-            </Text>
-            <View style={styles.journeyActionWrap}>
-              <AppButton label={journeyPrimaryAction.label} onPress={journeyPrimaryAction.onPress} />
-            </View>
-          </View>
-        </AppCard>
+        <HomeJourneyCard
+          statusLabel={homeJourney.statusLabel}
+          statusTone={homeJourney.statusTone}
+          headline={homeJourney.headline}
+          body={homeJourney.body}
+          inputDone={homeJourney.inputDone}
+          inputMeta={homeJourney.inputMeta}
+          inputStatusLabel={homeJourney.inputStatusLabel}
+          learningDone={homeJourney.learningDone}
+          learningDisplay={homeJourney.learningDisplay}
+          learningStatusLabel={homeJourney.learningStatusLabel}
+          learningTone={hasInProgress ? "accent" : "primary"}
+          reviewDone={homeJourney.reviewDone}
+          reviewMeta={homeJourney.reviewMeta}
+          reviewStatusLabel={homeJourney.reviewStatusLabel}
+          reviewTone={pendingReviewCount > 0 ? "accent" : "primary"}
+          footnote={
+            resumableJourneyInput
+              ? `最近更新：${getRelativeInputTimeLabel(resumableJourneyInput.createdAt)}`
+              : "主线会在拍照或上传后自动建立"
+          }
+          actionLabel={journeyPrimaryAction.label}
+          onAction={journeyPrimaryAction.onPress}
+        />
 
         <Text style={styles.homeFootnote}>
           已完成 {completedLessons} 次学习，提醒时间 {reminderText}，数据源：{getApiModeLabel()}
         </Text>
       </ScrollView>
 
-      <Modal
+      <HomeGenerationOverlay
         visible={Boolean(generatingSource)}
-        transparent
-        animationType="none"
-        statusBarTranslucent
-        onRequestClose={() => undefined}
-      >
-        <Animated.View
-          style={[
-            styles.generationOverlay,
-            {
-              opacity: generationOverlayAnim,
-            },
-          ]}
-        >
-          <Animated.View
-            style={[
-              styles.generationSheet,
-              {
-                transform: [
-                  {
-                    translateY: generationOverlayAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [28, 0],
-                    }),
-                  },
-                  {
-                    scale: generationOverlayAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.96, 1],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            <View style={styles.generationHandle} />
-            <View style={styles.generationHeader}>
-              <Text style={styles.generationTitle}>正在识别这一页并安排学习路线</Text>
-              <View style={styles.generationHeaderAside}>
-                <MascotBuddy
-                  state={generationStepIndex >= 2 ? "wow" : "teacher"}
-                  size={68}
-                  speech={generationStepIndex >= 2 ? "马上就能开始学啦" : "我来先排好路线"}
-                />
-                <StatusChip label={`${generationStepIndex + 1}/3`} tone="accent" />
-              </View>
-            </View>
-            <Text style={styles.generationLead}>
-              {activeGeneratedInput
-                ? `${getInputSourceLabel(generatingSource ?? "camera")}已收到「${activeGeneratedInput.title}」，系统正在识别内容并匹配合适的学习路线。`
-                : "这一页已经收到，系统正在完成内容识别和路线安排。"}
-            </Text>
-
-            {activeGeneratedInput ? (
-              <View style={styles.generationInputCard}>
-                {hasImagePreview(activeGeneratedInput) ? (
-                  <Image
-                    source={{ uri: activeGeneratedInput.previewUri ?? undefined }}
-                    style={styles.generationInputPreview}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View style={styles.generationInputPreviewFallback}>
-                    <Ionicons
-                      name={activeGeneratedInput.contentType === "pdf" ? "document-text-outline" : "image-outline"}
-                      size={24}
-                      color={colors.primary500}
-                    />
-                  </View>
-                )}
-                <View style={styles.generationInputContent}>
-                  <Text style={styles.generationInputLabel}>本次输入</Text>
-                  <Text style={styles.generationInputTitle} numberOfLines={1}>
-                    {activeGeneratedInput.title}
-                  </Text>
-                  <Text style={styles.generationInputMeta} numberOfLines={1}>
-                    {getContentTypeLabel(activeGeneratedInput.contentType)} · {activeGeneratedInput.recognizedGradeLabel}
-                    {activeGeneratedInput.fileSize
-                      ? ` · ${getReadableFileSizeLabel(activeGeneratedInput.fileSize)}`
-                      : ""}
-                  </Text>
-                  {activeGeneratedInput.recognizedTextSnippet ? (
-                    <Text style={styles.generationInputSnippet} numberOfLines={2}>
-                      识别到：{activeGeneratedInput.recognizedTextSnippet}
-                    </Text>
-                  ) : null}
-                </View>
-              </View>
-            ) : null}
-
-            {generationPromises.map((item, index) => {
-              const state =
-                index < generationStepIndex ? "done" : index === generationStepIndex ? "active" : "idle";
-              return (
-                <View key={item.title} style={styles.generationStepRow}>
-                  <View
-                    style={[
-                      styles.generationStepDot,
-                      state === "done" && styles.generationStepDotDone,
-                      state === "active" && styles.generationStepDotActive,
-                    ]}
-                  >
-                    {state === "done" ? (
-                      <Ionicons name="checkmark" size={14} color="#FFFFFF" />
-                    ) : (
-                      <Text
-                        style={[
-                          styles.generationStepIndexText,
-                          state === "active" && styles.generationStepIndexTextActive,
-                        ]}
-                      >
-                        {index + 1}
-                      </Text>
-                    )}
-                  </View>
-                  <View style={styles.generationStepContent}>
-                    <Text style={styles.generationStepTitle}>{item.title}</Text>
-                    <Text style={styles.generationStepText}>{item.detail}</Text>
-                  </View>
-                </View>
-              );
-            })}
-
-            <View style={styles.generationPreview}>
-              <Text style={styles.generationPreviewMeta}>马上会得到</Text>
-              <Text style={styles.generationPreviewTitle}>讲解 + 练习 + 温和复习</Text>
-              <Text style={styles.generationPreviewText}>
-                {activeGeneratedInput
-                  ? `${activeGeneratedInput.routeLabel} · 第一动作为「${activeGeneratedInput.recommendedEntryStep}」`
-                  : "不需要再找课，不需要再整理题，路线排好后就能直接带孩子开始学。"}
-              </Text>
-            </View>
-          </Animated.View>
-        </Animated.View>
-      </Modal>
+        animationValue={generationOverlayAnim}
+        currentStepIndex={generationStepIndex}
+        steps={generationPromises}
+        activeInput={activeGeneratedInput}
+        sourceLabel={getInputSourceLabel(generatingSource ?? "camera")}
+      />
     </View>
   );
 }
@@ -1260,153 +1020,15 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     gap: spacing.sm,
   },
-  heroPromiseRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    borderRadius: radius.md,
-    backgroundColor: "rgba(255,255,255,0.74)",
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    marginTop: spacing.xs,
-  },
-  heroPromiseIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.primary100,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heroPromiseText: {
-    ...textStyles.caption,
-    color: colors.textSecondary,
-    flex: 1,
-  },
-  captureStage: {
-    gap: spacing.xs,
-    paddingHorizontal: spacing.xs,
-    borderRadius: radius.xl,
-    backgroundColor: "transparent",
-  },
-  captureInputCompact: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    borderRadius: radius.lg,
-    backgroundColor: "rgba(255,255,255,0.94)",
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    shadowColor: colors.primary500,
-    shadowOpacity: 0.04,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 14,
-    elevation: 1,
-  },
-  captureInputCompactIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary50,
-    borderWidth: 1,
-    borderColor: colors.primary100,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  captureInputCompactCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  captureInputCard: {
-    borderRadius: radius.lg,
-    backgroundColor: "rgba(255,255,255,0.9)",
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    padding: spacing.md,
-    gap: spacing.xs,
-  },
-  captureInputTitle: {
-    ...textStyles.title,
-    color: colors.primary600,
-    fontSize: 16,
-  },
-  captureInputMeta: {
-    ...textStyles.caption,
-    color: colors.textTertiary,
-  },
-  captureInputChipRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: spacing.xs,
-  },
-  captureInputMiniChip: {
-    borderRadius: radius.pill,
-    backgroundColor: colors.primary50,
-    borderWidth: 1,
-    borderColor: colors.primary200,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-  },
-  captureInputMiniChipText: {
-    ...textStyles.meta,
-    color: colors.primary600,
-  },
-  captureInputSummary: {
-    ...textStyles.caption,
-    color: colors.textSecondary,
-    lineHeight: 18,
-  },
   capturePrimaryStage: {
     alignItems: "center",
     justifyContent: "center",
     marginTop: spacing.xs,
   },
-  captureSideCard: {
-    width: 88,
-    minHeight: 122,
-    borderRadius: radius.lg,
-    backgroundColor: "rgba(255,255,255,0.92)",
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.md,
-    gap: spacing.xs,
-  },
-  captureSideIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: colors.primary100,
-    borderWidth: 1,
-    borderColor: colors.primary200,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  captureSideTitle: {
-    ...textStyles.title,
-    fontSize: 16,
-    textAlign: "center",
-  },
-  captureSideSubtitle: {
-    ...textStyles.caption,
-    color: colors.textSecondary,
-    textAlign: "center",
-  },
   capturePrimaryWrap: {
     width: "100%",
     alignItems: "center",
     gap: 6,
-  },
-  captureCenterColumn: {
-    alignItems: "center",
-    gap: spacing.xxs,
   },
   captureCenterHint: {
     ...textStyles.meta,
@@ -1466,281 +1088,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 20,
   },
-  captureOutcomeCard: {
-    alignSelf: "center",
-    width: "100%",
-    borderRadius: radius.lg,
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    gap: spacing.xs,
-    shadowColor: colors.primary500,
-    shadowOpacity: 0.03,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
-    elevation: 1,
-  },
-  captureOutcomeTitle: {
-    ...textStyles.meta,
-    color: colors.primary600,
-    fontSize: 13,
-  },
-  captureOutcomeInline: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: spacing.xs,
-  },
-  captureOutcomeBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    borderRadius: radius.pill,
-    backgroundColor: colors.primary50,
-    borderWidth: 1,
-    borderColor: colors.primary200,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  captureOutcomeBadgeText: {
-    ...textStyles.meta,
-    color: colors.textPrimary,
-  },
-  captureOutcomeMeta: {
-    ...textStyles.caption,
-    color: colors.textSecondary,
-  },
-  captureAssistRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    width: "82%",
-    alignSelf: "center",
-  },
-  captureAssistPill: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.xs,
-    borderRadius: radius.pill,
-    backgroundColor: "rgba(255,255,255,0.88)",
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 10,
-  },
-  captureAssistText: {
-    ...textStyles.meta,
-    color: colors.primary600,
-  },
-  heroShowcase: {
-    gap: spacing.xs,
-    marginTop: spacing.sm,
-  },
-  heroShowcaseCard: {
-    borderRadius: radius.md,
-    backgroundColor: "rgba(255,255,255,0.82)",
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    padding: spacing.sm,
-    gap: spacing.xs,
-  },
-  heroShowcaseSourceCard: {
-    shadowColor: colors.primary500,
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 14,
-    elevation: 2,
-  },
-  heroShowcaseResultCard: {
-    alignSelf: "flex-end",
-    width: "88%",
-    shadowColor: colors.primary500,
-    shadowOpacity: 0.06,
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 16,
-    elevation: 2,
-  },
-  heroShowcaseLabel: {
-    ...textStyles.meta,
-    color: colors.primary600,
-  },
-  heroShowcaseText: {
-    ...textStyles.caption,
-    color: colors.textSecondary,
-  },
-  heroShowcaseChipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.xs,
-  },
-  heroShowcaseMiniChip: {
-    borderRadius: radius.pill,
-    backgroundColor: colors.primary50,
-    borderWidth: 1,
-    borderColor: colors.primary200,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-  },
-  heroShowcaseMiniChipText: {
-    ...textStyles.meta,
-    color: colors.primary600,
-  },
-  heroShowcaseConnector: {
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.xs,
-  },
-  heroShowcaseLine: {
-    width: 2,
-    height: 14,
-    borderRadius: 1,
-    backgroundColor: colors.primary200,
-  },
-  heroShowcaseCameraWrap: {
-    padding: 4,
-  },
-  heroShowcaseCamera: {
-    width: 124,
-    borderRadius: 26,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-    alignItems: "center",
-    gap: spacing.xxs,
-    shadowColor: colors.primary600,
-    shadowOpacity: 0.14,
-    shadowOffset: { width: 0, height: 10 },
-    shadowRadius: 16,
-    elevation: 5,
-  },
-  heroShowcaseCameraInner: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heroShowcaseCameraTitle: {
-    ...textStyles.title,
-    color: "#FFFFFF",
-    fontSize: 17,
-  },
-  heroShowcaseCameraText: {
-    ...textStyles.caption,
-    color: "rgba(255,255,255,0.82)",
-    textAlign: "center",
-  },
-  heroShowcaseResultRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  heroShowcaseResultText: {
-    ...textStyles.body,
-    color: colors.textPrimary,
-  },
-  heroActionGroup: {
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  heroPrimaryAction: {
-    minHeight: 76,
-    borderRadius: radius.lg,
-    overflow: "hidden",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    shadowColor: colors.primary600,
-    shadowOpacity: 0.14,
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 16,
-    elevation: 4,
-  },
-  heroPrimaryCapture: {
-    width: 72,
-    height: 72,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heroPrimaryCaptureRing: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: "rgba(255,255,255,0.16)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.32)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heroPrimaryCaptureCore: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heroPrimaryTextWrap: {
-    flex: 1,
-    gap: spacing.xxs,
-  },
-  heroPrimaryTitle: {
-    ...textStyles.title,
-    color: "#FFFFFF",
-  },
-  heroPrimarySubtitle: {
-    ...textStyles.caption,
-    color: "rgba(255,255,255,0.82)",
-  },
-  heroSecondaryAction: {
-    minHeight: 64,
-    borderRadius: radius.md,
-    backgroundColor: colors.bgCard,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  heroSecondaryIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.primary100,
-    borderWidth: 1,
-    borderColor: colors.primary200,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heroSecondaryTextWrap: {
-    flex: 1,
-    gap: spacing.xxs,
-  },
-  heroSecondaryTitle: {
-    ...textStyles.title,
-    fontSize: 16,
-  },
-  heroSecondarySubtitle: {
-    ...textStyles.caption,
-    color: colors.textSecondary,
-  },
   heroActionPressed: {
     transform: [{ scale: 0.988 }],
     opacity: 0.92,
-  },
-  heroChipRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: spacing.xs,
   },
   noticeWrap: {
     marginTop: -spacing.xs,
@@ -1759,79 +1109,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.sm,
   },
-  journeyCard: {
-    gap: spacing.sm,
-  },
-  journeyFocusCard: {
-    gap: spacing.xxs,
-  },
-  journeyLeadText: {
-    ...textStyles.caption,
-    color: colors.textSecondary,
-    lineHeight: 20,
-  },
-  journeyMiniTrack: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    flexWrap: "wrap",
-  },
-  journeyMiniStep: {
-    flex: 1,
-    minWidth: 92,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    backgroundColor: colors.bgElevated,
-    padding: spacing.sm,
-    gap: spacing.xs,
-  },
-  journeyMiniStepDone: {
-    borderColor: colors.primary200,
-    backgroundColor: colors.primary50,
-  },
-  journeyMiniTitle: {
-    ...textStyles.meta,
-    color: colors.textPrimary,
-  },
-  journeyMiniMeta: {
-    ...textStyles.caption,
-    color: colors.textSecondary,
-    minHeight: 36,
-  },
-  journeyStepDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.primary100,
-    borderWidth: 1,
-    borderColor: colors.primary200,
-  },
-  journeyStepDotDone: {
-    backgroundColor: colors.primary500,
-    borderColor: colors.primary500,
-  },
-  journeyStepCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  journeyStepTitle: {
-    ...textStyles.meta,
-    color: colors.textPrimary,
-  },
-  journeyStepMeta: {
-    ...textStyles.caption,
-    color: colors.textSecondary,
-  },
-  journeyFooter: {
-    gap: spacing.sm,
-  },
-  journeyFootnote: {
-    ...textStyles.caption,
-    color: colors.textTertiary,
-  },
-  journeyActionWrap: {
-    width: "100%",
-  },
   noticeCopy: {
     flex: 1,
     gap: spacing.xs,
@@ -1840,191 +1117,12 @@ const styles = StyleSheet.create({
     ...textStyles.body,
     color: colors.textSecondary,
   },
-  generationPanel: {
-    marginTop: spacing.sm,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.primary200,
-    gap: spacing.sm,
-  },
-  generationOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(20, 36, 29, 0.26)",
-    justifyContent: "flex-end",
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.lg,
-  },
-  generationSheet: {
-    borderRadius: 28,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.md,
-    backgroundColor: colors.bgCard,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    gap: spacing.sm,
-    shadowColor: colors.primary700,
-    shadowOpacity: 0.14,
-    shadowOffset: { width: 0, height: 10 },
-    shadowRadius: 24,
-    elevation: 8,
-  },
-  generationHandle: {
-    alignSelf: "center",
-    width: 44,
-    height: 5,
-    borderRadius: 999,
-    backgroundColor: colors.borderLight,
-  },
-  generationHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  generationHeaderAside: {
-    alignItems: "flex-end",
-    gap: spacing.xs,
-  },
-  generationTitle: {
-    ...textStyles.title,
-    flex: 1,
-    fontSize: 17,
-  },
-  generationLead: {
-    ...textStyles.caption,
-    color: colors.textSecondary,
-  },
-  generationInputCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    borderRadius: radius.md,
-    backgroundColor: colors.primary50,
-    borderWidth: 1,
-    borderColor: colors.primary200,
-    padding: spacing.sm,
-  },
-  generationInputPreview: {
-    width: 72,
-    height: 72,
-    borderRadius: radius.md,
-    backgroundColor: colors.primary100,
-  },
-  generationInputPreviewFallback: {
-    width: 72,
-    height: 72,
-    borderRadius: radius.md,
-    backgroundColor: colors.primary100,
-    borderWidth: 1,
-    borderColor: colors.primary200,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  generationInputContent: {
-    flex: 1,
-    gap: spacing.xxs,
-  },
-  generationInputLabel: {
-    ...textStyles.meta,
-    color: colors.primary600,
-  },
-  generationInputTitle: {
-    ...textStyles.title,
-    fontSize: 17,
-  },
-  generationInputMeta: {
-    ...textStyles.caption,
-    color: colors.textSecondary,
-  },
-  generationInputSnippet: {
-    ...textStyles.caption,
-    color: colors.primary600,
-  },
-  generationStepRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: spacing.sm,
-  },
-  generationStepDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.bgBase,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 2,
-  },
-  generationStepDotDone: {
-    backgroundColor: colors.primary500,
-    borderColor: colors.primary500,
-  },
-  generationStepDotActive: {
-    backgroundColor: colors.primary100,
-    borderColor: colors.primary500,
-  },
-  generationStepIndexText: {
-    ...textStyles.meta,
-    color: colors.textSecondary,
-  },
-  generationStepIndexTextActive: {
-    color: colors.primary500,
-  },
-  generationStepContent: {
-    flex: 1,
-    gap: spacing.xxs,
-  },
-  generationStepTitle: {
-    ...textStyles.meta,
-    color: colors.textPrimary,
-  },
-  generationStepText: {
-    ...textStyles.caption,
-    color: colors.textSecondary,
-  },
-  generationPreview: {
-    borderRadius: radius.md,
-    backgroundColor: colors.primary50,
-    borderWidth: 1,
-    borderColor: colors.primary200,
-    padding: spacing.sm,
-    gap: spacing.xxs,
-  },
-  generationPreviewMeta: {
-    ...textStyles.meta,
-    color: colors.primary500,
-  },
-  generationPreviewTitle: {
-    ...textStyles.title,
-    fontSize: 17,
-  },
-  generationPreviewText: {
-    ...textStyles.caption,
-    color: colors.textSecondary,
-  },
   homeFootnote: {
     ...textStyles.caption,
     color: colors.textTertiary,
     textAlign: "center",
     paddingHorizontal: spacing.sm,
     paddingBottom: spacing.sm,
-  },
-  homeMetaCard: {
-    gap: spacing.sm,
-  },
-  pathCard: {
-    gap: spacing.sm,
-  },
-  recentInputCard: {
-    gap: spacing.sm,
-  },
-  recentInputBody: {
-    flexDirection: "row",
-    alignItems: "stretch",
-    gap: spacing.sm,
   },
   recentInputPreview: {
     width: 88,
@@ -2056,16 +1154,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexWrap: "wrap",
     gap: spacing.xs,
-  },
-  pathTitle: {
-    ...textStyles.title,
-    fontSize: 20,
-    lineHeight: 28,
-  },
-  quickLinks: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
   },
   link: {
     ...textStyles.meta,
