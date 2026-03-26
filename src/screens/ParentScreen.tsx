@@ -1,10 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useRef, useState } from "react";
 import {
-  Image,
   Platform,
   Pressable,
   RefreshControl,
@@ -26,7 +24,11 @@ import {
 } from "../api/service";
 import { AppButton } from "../components/AppButton";
 import { AppCard } from "../components/AppCard";
-import { MascotBuddy, MascotState } from "../components/MascotBuddy";
+import { MascotState } from "../components/MascotBuddy";
+import { ParentDetailSection } from "../components/parent/ParentDetailSection";
+import { ParentHeroCard } from "../components/parent/ParentHeroCard";
+import { ParentJourneyCard } from "../components/parent/ParentJourneyCard";
+import { ParentLatestInputCard } from "../components/parent/ParentLatestInputCard";
 import { StatusChip } from "../components/StatusChip";
 import { ScreenErrorState } from "../components/states/ScreenErrorState";
 import { ScreenLoadingState } from "../components/states/ScreenLoadingState";
@@ -42,11 +44,7 @@ import { useReviewQueue } from "../hooks/useReviewQueue";
 import { useWeeklyReport } from "../hooks/useWeeklyReport";
 import { useAppState } from "../state/AppState";
 import {
-  getContentTypeLabel,
   getInputSourceLabel,
-  getRelativeInputTimeLabel,
-  getReadableFileSizeLabel,
-  hasImagePreview,
   useContentInputStore,
 } from "../state/contentInputStore";
 import { useLearningJourneyStore } from "../state/learningJourneyStore";
@@ -337,6 +335,7 @@ export function ParentScreen({ navigation }: Props) {
       : resumableInput
         ? "已安排"
         : "待开始";
+  const journeyStatusTone = hasInProgress || pendingReviewCount > 0 ? ("accent" as const) : ("primary" as const);
 
   function resumeSession() {
     navigation.navigate("Session", {
@@ -484,46 +483,19 @@ export function ParentScreen({ navigation }: Props) {
         />
       }
     >
-      <LinearGradient
-        colors={[colors.primary100, colors.primary50]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.heroCard}
-      >
-        <View style={styles.heroGlowOne} />
-        <View style={styles.heroGlowTwo} />
-        <View style={styles.heroTop}>
-          <View style={styles.heroCopy}>
-            <View style={styles.heroChipRow}>
-              <StatusChip label="我的" tone="primary" />
-              <StatusChip
-                label={currentJourneyStatus}
-                tone={hasInProgress || pendingReviewCount > 0 ? "accent" : "primary"}
-              />
-            </View>
-            <Text style={styles.heroTitle}>{heroTitle}</Text>
-            <Text style={styles.heroText}>{heroBody}</Text>
-            <View style={styles.heroMetaRow}>
-              <StatusChip label={childGradeLabel} tone="primary" />
-              <StatusChip label={`重点：${focusLabel}`} />
-              {uploadedTextbookLabel ? <StatusChip label={uploadedTextbookLabel} tone="accent" /> : null}
-            </View>
-          </View>
-          <MascotBuddy state={heroMascotState} size={104} speech={heroSpeech} />
-        </View>
-        <View style={styles.heroActionRow}>
-          <View style={styles.heroActionCell}>
-            <AppButton label={heroPrimaryAction.label} onPress={heroPrimaryAction.onPress} />
-          </View>
-          <View style={styles.heroActionCell}>
-            <AppButton
-              label={heroSecondaryAction.label}
-              onPress={heroSecondaryAction.onPress}
-              variant="secondary"
-            />
-          </View>
-        </View>
-      </LinearGradient>
+      <ParentHeroCard
+        currentJourneyStatus={currentJourneyStatus}
+        statusTone={journeyStatusTone}
+        title={heroTitle}
+        body={heroBody}
+        childGradeLabel={childGradeLabel}
+        focusLabel={focusLabel}
+        uploadedTextbookLabel={uploadedTextbookLabel}
+        mascotState={heroMascotState}
+        mascotSpeech={heroSpeech}
+        primaryAction={heroPrimaryAction}
+        secondaryAction={heroSecondaryAction}
+      />
 
       <View style={styles.metricGrid}>
         <MetricTile icon="school-outline" label="本周学习" value={`${report.weeklyCompletedLessons}`} meta="次内容学习" />
@@ -532,63 +504,42 @@ export function ParentScreen({ navigation }: Props) {
         <MetricTile icon="refresh-circle-outline" label="待复习" value={`${pendingReviewCount}`} meta="项温和巩固" />
       </View>
 
-      <AppCard style={styles.journeyCard}>
-        <View style={styles.rowBetween}>
-          <Text style={textStyles.title}>当前学习主线</Text>
-          <StatusChip
-            label={currentJourneyStatus}
-            tone={hasInProgress || pendingReviewCount > 0 ? "accent" : "primary"}
-          />
-        </View>
-        <Text style={styles.journeyTitle}>
-          {hasInProgress
+      <ParentJourneyCard
+        currentJourneyStatus={currentJourneyStatus}
+        statusTone={journeyStatusTone}
+        title={
+          hasInProgress
             ? `正在学「${journeyLessonTitle}」`
             : journeyCompletedLearning && pendingReviewCount > 0
               ? `「${journeyLessonTitle}」学完了，下一步先复习`
               : resumableInput
                 ? `已收好「${resumableInput.title}」`
-                : "还没有新的输入内容"}
-        </Text>
-        <View style={styles.journeyMiniTrack}>
-          <View style={[styles.journeyMiniStep, resumableInput && styles.journeyMiniStepDone]}>
-            <Text style={styles.journeyMiniLabel}>输入内容</Text>
-            <Text style={styles.journeyMiniValue} numberOfLines={2}>
-              {resumableInput ? resumableInput.title : "拍照或上传后自动记录"}
-            </Text>
-            <Text style={styles.journeyMiniMeta}>
-              {resumableInput ? getInputSourceLabel(resumableInput.source) : "等待开始"}
-            </Text>
-          </View>
-          <View style={[styles.journeyMiniStep, (hasInProgress || journeyCompletedLearning) && styles.journeyMiniStepDone]}>
-            <Text style={styles.journeyMiniLabel}>开始学习</Text>
-            <Text style={styles.journeyMiniValue} numberOfLines={2}>
-              {journeyLessonTitle}
-            </Text>
-            <Text style={styles.journeyMiniMeta}>
-              {hasInProgress
-                ? `第 ${sessionStep}/${sessionTotalSteps} 步`
-                : journeyCompletedLearning
-                  ? "已完成"
-                  : resumableInput
-                    ? `${resumableInput.generatedTaskCount} 步任务`
-                    : "待开始"}
-            </Text>
-          </View>
-          <View style={[styles.journeyMiniStep, (pendingReviewCount > 0 || lastCompletedReview) && styles.journeyMiniStepDone]}>
-            <Text style={styles.journeyMiniLabel}>温和复习</Text>
-            <Text style={styles.journeyMiniValue} numberOfLines={2}>
-              {pendingReviewCount > 0 ? "今天先复习眼前这一题" : "学完后自动接上"}
-            </Text>
-            <Text style={styles.journeyMiniMeta}>
-              {pendingReviewCount > 0
-                ? `${pendingReviewCount} 项待巩固`
-                : lastCompletedReview
-                  ? `已完成 ${lastCompletedReview.completedCount} 题`
-                  : "暂未开始"}
-            </Text>
-          </View>
-        </View>
-      </AppCard>
+                : "还没有新的输入内容"
+        }
+        inputDone={Boolean(resumableInput)}
+        inputTitle={resumableInput ? resumableInput.title : "拍照或上传后自动记录"}
+        inputMeta={resumableInput ? getInputSourceLabel(resumableInput.source) : "等待开始"}
+        learningDone={Boolean(hasInProgress || journeyCompletedLearning || resumableInput)}
+        learningTitle={journeyLessonTitle}
+        learningMeta={
+          hasInProgress
+            ? `第 ${sessionStep}/${sessionTotalSteps} 步`
+            : journeyCompletedLearning
+              ? "已完成"
+              : resumableInput
+                ? `${resumableInput.generatedTaskCount} 步任务`
+                : "待开始"
+        }
+        reviewDone={Boolean(pendingReviewCount > 0 || lastCompletedReview)}
+        reviewTitle={pendingReviewCount > 0 ? "今天先复习眼前这一题" : "学完后自动接上"}
+        reviewMeta={
+          pendingReviewCount > 0
+            ? `${pendingReviewCount} 项待巩固`
+            : lastCompletedReview
+              ? `已完成 ${lastCompletedReview.completedCount} 题`
+              : "暂未开始"
+        }
+      />
 
       <AppCard style={styles.profileCard}>
         <View style={styles.rowBetween}>
@@ -606,53 +557,12 @@ export function ParentScreen({ navigation }: Props) {
       </AppCard>
 
       {latestInput ? (
-        <AppCard style={styles.card}>
-          <View style={styles.rowBetween}>
-            <Text style={textStyles.title}>最近一次输入</Text>
-            <Text style={styles.meta}>{getRelativeInputTimeLabel(latestInput.createdAt)}</Text>
-          </View>
-          <View style={styles.inputPreviewRow}>
-            {hasImagePreview(latestInput) ? (
-              <Image
-                source={{ uri: latestInput.previewUri ?? undefined }}
-                style={styles.inputPreview}
-                resizeMode="cover"
-              />
-            ) : (
-              <View style={styles.inputPreviewFallback}>
-                <Text style={styles.previewFallbackText}>
-                  {getContentTypeLabel(latestInput.contentType)}
-                </Text>
-              </View>
-            )}
-            <View style={styles.inputPreviewContent}>
-              <Text style={textStyles.body}>{latestInput.title}</Text>
-              {latestInput.fileName ? (
-                <Text style={styles.meta} numberOfLines={1}>
-                  {latestInput.fileName}
-                  {latestInput.fileSize ? ` · ${getReadableFileSizeLabel(latestInput.fileSize)}` : ""}
-                </Text>
-              ) : null}
-              <Text style={styles.meta}>{latestInput.summary}</Text>
-              {latestInput.recognizedTextSnippet ? (
-                <Text style={styles.snippetText}>识别到：{latestInput.recognizedTextSnippet}</Text>
-              ) : null}
-            </View>
-          </View>
-          <View style={styles.metaRow}>
-            <StatusChip label={getInputSourceLabel(latestInput.source)} tone="primary" />
-            <StatusChip label={getContentTypeLabel(latestInput.contentType)} />
-            <StatusChip label={latestInput.routeLabel} />
-            <StatusChip label={`${latestInput.generatedTaskCount} 步任务`} tone="accent" />
-          </View>
-          <View style={styles.actionButtons}>
-            <AppButton
-              label={hasInProgress ? "继续当前学习" : "开始这份内容"}
-              onPress={hasInProgress ? resumeSession : startResumableContent}
-            />
-            <AppButton label="回首页拍照" variant="secondary" onPress={() => navigation.navigate("Home")} />
-          </View>
-        </AppCard>
+        <ParentLatestInputCard
+          latestInput={latestInput}
+          primaryActionLabel={hasInProgress ? "继续当前学习" : "开始这份内容"}
+          onPrimaryAction={hasInProgress ? resumeSession : startResumableContent}
+          onHomeAction={() => navigation.navigate("Home")}
+        />
       ) : null}
 
       <AppCard style={styles.growthCard}>
@@ -693,24 +603,12 @@ export function ParentScreen({ navigation }: Props) {
 
       {showAdvanced ? (
         <>
-          <AppCard style={styles.detailSectionCard}>
-            <Pressable
-              hitSlop={8}
-              onPress={() => toggleDetailSection("content")}
-              style={({ pressed }) => [styles.detailSectionHeader, pressed && styles.detailSectionHeaderPressed]}
-            >
-              <View style={styles.detailSectionCopy}>
-                <Text style={styles.detailSectionTitle}>内容安排</Text>
-                <Text style={styles.detailSectionMeta}>课程进度、当前内容和继续学习入口</Text>
-              </View>
-              <Ionicons
-                name={expandedDetailSections.content ? "chevron-up-outline" : "chevron-down-outline"}
-                size={18}
-                color={colors.primary500}
-              />
-            </Pressable>
-            {expandedDetailSections.content ? (
-              <View style={styles.detailSectionBody}>
+          <ParentDetailSection
+            title="内容安排"
+            meta="课程进度、当前内容和继续学习入口"
+            expanded={expandedDetailSections.content}
+            onToggle={() => toggleDetailSection("content")}
+          >
                 <Text style={textStyles.meta}>学习内容进度概览</Text>
                 <View style={styles.metaRow}>
                   {lessons.map((lesson, idx) => {
@@ -768,28 +666,14 @@ export function ParentScreen({ navigation }: Props) {
                     onPress={() => navigation.navigate("Review")}
                   />
                 </View>
-              </View>
-            ) : null}
-          </AppCard>
+          </ParentDetailSection>
 
-          <AppCard style={styles.detailSectionCard}>
-            <Pressable
-              hitSlop={8}
-              onPress={() => toggleDetailSection("diagnosis")}
-              style={({ pressed }) => [styles.detailSectionHeader, pressed && styles.detailSectionHeaderPressed]}
-            >
-              <View style={styles.detailSectionCopy}>
-                <Text style={styles.detailSectionTitle}>能力诊断</Text>
-                <Text style={styles.detailSectionMeta}>错误分布、朗读稳定度和掌握能力点</Text>
-              </View>
-              <Ionicons
-                name={expandedDetailSections.diagnosis ? "chevron-up-outline" : "chevron-down-outline"}
-                size={18}
-                color={colors.primary500}
-              />
-            </Pressable>
-            {expandedDetailSections.diagnosis ? (
-              <View style={styles.detailSectionBody}>
+          <ParentDetailSection
+            title="能力诊断"
+            meta="错误分布、朗读稳定度和掌握能力点"
+            expanded={expandedDetailSections.diagnosis}
+            onToggle={() => toggleDetailSection("diagnosis")}
+          >
                 <Text style={textStyles.meta}>错误分布</Text>
                 <View style={styles.metaRow}>
                   <StatusChip label={`字词没懂 ${Math.round(report.errorDistribution.vocab_unknown * 100)}%`} />
@@ -820,28 +704,14 @@ export function ParentScreen({ navigation }: Props) {
                     <StatusChip label="掌握能力点会在学习后出现" />
                   )}
                 </View>
-              </View>
-            ) : null}
-          </AppCard>
+          </ParentDetailSection>
 
-          <AppCard style={styles.detailSectionCard}>
-            <Pressable
-              hitSlop={8}
-              onPress={() => toggleDetailSection("settings")}
-              style={({ pressed }) => [styles.detailSectionHeader, pressed && styles.detailSectionHeaderPressed]}
-            >
-              <View style={styles.detailSectionCopy}>
-                <Text style={styles.detailSectionTitle}>学习设置</Text>
-                <Text style={styles.detailSectionMeta}>单次学习时长和提醒时间</Text>
-              </View>
-              <Ionicons
-                name={expandedDetailSections.settings ? "chevron-up-outline" : "chevron-down-outline"}
-                size={18}
-                color={colors.primary500}
-              />
-            </Pressable>
-            {expandedDetailSections.settings ? (
-              <View style={styles.detailSectionBody}>
+          <ParentDetailSection
+            title="学习设置"
+            meta="单次学习时长和提醒时间"
+            expanded={expandedDetailSections.settings}
+            onToggle={() => toggleDetailSection("settings")}
+          >
                 {!parentId || !parentSettings ? (
                   <Text style={styles.meta}>当前无可编辑家长设置</Text>
                 ) : (
@@ -910,28 +780,14 @@ export function ParentScreen({ navigation }: Props) {
                     />
                   </>
                 )}
-              </View>
-            ) : null}
-          </AppCard>
+          </ParentDetailSection>
 
-          <AppCard style={styles.detailSectionCard}>
-            <Pressable
-              hitSlop={8}
-              onPress={() => toggleDetailSection("data")}
-              style={({ pressed }) => [styles.detailSectionHeader, pressed && styles.detailSectionHeaderPressed]}
-            >
-              <View style={styles.detailSectionCopy}>
-                <Text style={styles.detailSectionTitle}>数据管理</Text>
-                <Text style={styles.detailSectionMeta}>同意记录、导出和删除操作</Text>
-              </View>
-              <Ionicons
-                name={expandedDetailSections.data ? "chevron-up-outline" : "chevron-down-outline"}
-                size={18}
-                color={colors.primary500}
-              />
-            </Pressable>
-            {expandedDetailSections.data ? (
-              <View style={styles.detailSectionBody}>
+          <ParentDetailSection
+            title="数据管理"
+            meta="同意记录、导出和删除操作"
+            expanded={expandedDetailSections.data}
+            onToggle={() => toggleDetailSection("data")}
+          >
                 <Text style={styles.meta}>接口模式：{getApiModeLabel()}</Text>
                 <Text style={textStyles.meta}>监护人同意记录</Text>
                 {!parentId ? (
@@ -1047,9 +903,7 @@ export function ParentScreen({ navigation }: Props) {
                     }}
                   />
                 ) : null}
-              </View>
-            ) : null}
-          </AppCard>
+          </ParentDetailSection>
         </>
       ) : null}
     </ScrollView>
@@ -1060,74 +914,6 @@ const styles = StyleSheet.create({
   content: {
     padding: spacing.pageHorizontal,
     gap: spacing.md,
-  },
-  heroCard: {
-    borderRadius: radius.xl,
-    padding: spacing.lg,
-    gap: spacing.md,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    ...shadow.card,
-  },
-  heroGlowOne: {
-    position: "absolute",
-    width: 180,
-    height: 180,
-    borderRadius: 999,
-    backgroundColor: colors.primary200,
-    top: -72,
-    left: -44,
-    opacity: 0.86,
-  },
-  heroGlowTwo: {
-    position: "absolute",
-    width: 144,
-    height: 144,
-    borderRadius: 999,
-    backgroundColor: colors.accent100,
-    right: -34,
-    bottom: -42,
-    opacity: 0.94,
-  },
-  heroTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  heroCopy: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  heroChipRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: spacing.xs,
-  },
-  heroTitle: {
-    ...textStyles.h2,
-    fontSize: 28,
-    lineHeight: 34,
-    color: colors.textPrimary,
-  },
-  heroText: {
-    ...textStyles.body,
-    color: colors.textSecondary,
-    lineHeight: 24,
-  },
-  heroMetaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: spacing.xs,
-  },
-  heroActionRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  heroActionCell: {
-    flex: 1,
   },
   metricGrid: {
     flexDirection: "row",
@@ -1168,46 +954,6 @@ const styles = StyleSheet.create({
     ...textStyles.caption,
     color: colors.textTertiary,
   },
-  journeyCard: {
-    gap: spacing.sm,
-  },
-  journeyTitle: {
-    ...textStyles.title,
-    color: colors.textPrimary,
-  },
-  journeyMiniTrack: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-  },
-  journeyMiniStep: {
-    flex: 1,
-    minWidth: 96,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    backgroundColor: colors.bgElevated,
-    padding: spacing.sm,
-    gap: spacing.xs,
-  },
-  journeyMiniStepDone: {
-    borderColor: colors.primary200,
-    backgroundColor: colors.primary50,
-  },
-  journeyMiniLabel: {
-    ...textStyles.meta,
-    color: colors.primary600,
-  },
-  journeyMiniValue: {
-    ...textStyles.meta,
-    color: colors.textPrimary,
-    lineHeight: 20,
-  },
-  journeyMiniMeta: {
-    ...textStyles.caption,
-    color: colors.textSecondary,
-    minHeight: 18,
-  },
   profileCard: {
     gap: spacing.sm,
   },
@@ -1224,37 +970,6 @@ const styles = StyleSheet.create({
     ...textStyles.body,
     color: colors.textSecondary,
   },
-  detailSectionCard: {
-    gap: spacing.sm,
-  },
-  detailSectionHeader: {
-    minHeight: 44,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  detailSectionHeaderPressed: {
-    opacity: 0.92,
-  },
-  detailSectionCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  detailSectionTitle: {
-    ...textStyles.meta,
-    color: colors.textPrimary,
-  },
-  detailSectionMeta: {
-    ...textStyles.caption,
-    color: colors.textTertiary,
-  },
-  detailSectionBody: {
-    gap: spacing.sm,
-    paddingTop: spacing.xs,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderSoft,
-  },
   card: {
     gap: spacing.sm,
   },
@@ -1263,35 +978,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: spacing.sm,
-  },
-  inputPreviewRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  inputPreview: {
-    width: 72,
-    height: 72,
-    borderRadius: 16,
-    backgroundColor: colors.primary100,
-  },
-  inputPreviewFallback: {
-    width: 72,
-    height: 72,
-    borderRadius: 16,
-    backgroundColor: colors.primary100,
-    borderWidth: 1,
-    borderColor: colors.primary200,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  previewFallbackText: {
-    ...textStyles.meta,
-    color: colors.primary600,
-  },
-  inputPreviewContent: {
-    flex: 1,
-    gap: spacing.xxs,
   },
   metaRow: {
     flexDirection: "row",
@@ -1330,10 +1016,6 @@ const styles = StyleSheet.create({
   meta: {
     ...textStyles.caption,
     color: colors.textTertiary,
-  },
-  snippetText: {
-    ...textStyles.caption,
-    color: colors.primary600,
   },
   error: {
     ...textStyles.caption,

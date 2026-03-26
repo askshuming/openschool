@@ -1,11 +1,9 @@
-import { Ionicons } from "@expo/vector-icons";
 import { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Platform,
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -19,15 +17,14 @@ import { submitReviewAnswerApi } from "../api/service";
 import { queryKeys } from "../api/queryKeys";
 import { AppButton } from "../components/AppButton";
 import { AppCard } from "../components/AppCard";
-import { FeedbackBox } from "../components/FeedbackBox";
-import { MascotBuddy } from "../components/MascotBuddy";
-import { ProgressHeader } from "../components/ProgressHeader";
-import { StatusChip } from "../components/StatusChip";
-import { ScreenEmptyState } from "../components/states/ScreenEmptyState";
+import { ReviewCompletionCard, ReviewCompletionSummary } from "../components/review/ReviewCompletionCard";
+import { ReviewHeroCard } from "../components/review/ReviewHeroCard";
+import { ReviewPracticeStage } from "../components/review/ReviewPracticeStage";
+import { ReviewQueuePanel } from "../components/review/ReviewQueuePanel";
 import { ScreenErrorState } from "../components/states/ScreenErrorState";
 import { ScreenLoadingState } from "../components/states/ScreenLoadingState";
 import { ScreenOfflineState } from "../components/states/ScreenOfflineState";
-import { colors, motion, radius, spacing } from "../design/tokens";
+import { colors, motion, spacing } from "../design/tokens";
 import { layoutStyles, textStyles } from "../design/theme";
 import { useCatalog } from "../hooks/useCatalog";
 import { useReviewQueue } from "../hooks/useReviewQueue";
@@ -40,31 +37,6 @@ import { isOfflineError, toUserErrorMessage } from "../utils/errorMessage";
 type ReviewTab = "today" | "done";
 type Props = BottomTabScreenProps<AppTabParamList, "Review">;
 type PracticeMode = "idle" | "single" | "batch";
-type CompletionSummary = {
-  mode: "single" | "batch";
-  completedCount: number;
-  createdAt: string;
-};
-
-const typeLabelMap: Record<ReviewQueueItem["targetType"], string> = {
-  vocab: "字词",
-  evidence_locating: "证据句",
-  main_idea: "主旨",
-  recitation: "背诵",
-};
-
-const difficultyLabelMap: Record<ReviewQueueItem["difficulty"], string> = {
-  basic: "基础",
-  medium: "巩固",
-  advanced: "提升",
-};
-
-const dueTextMap: Record<ReviewQueueItem["dueAt"], string> = {
-  today: "今天",
-  tomorrow: "明天",
-  "3d": "3 天后",
-  "7d": "7 天后",
-};
 
 export function ReviewScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
@@ -84,7 +56,7 @@ export function ReviewScreen({ navigation, route }: Props) {
   const [answerResult, setAnswerResult] = useState<ReviewAnswerResponse | null>(null);
   const [practiceSubmitError, setPracticeSubmitError] = useState<string | null>(null);
   const [practiceHint, setPracticeHint] = useState<string | null>(null);
-  const [completionSummary, setCompletionSummary] = useState<CompletionSummary | null>(null);
+  const [completionSummary, setCompletionSummary] = useState<ReviewCompletionSummary | null>(null);
   const [showQueueDetails, setShowQueueDetails] = useState(false);
   const reviewQueueQuery = useReviewQueue(childKey, effectiveChildId);
   const catalogQuery = useCatalog();
@@ -284,6 +256,22 @@ export function ReviewScreen({ navigation, route }: Props) {
     setTab("today");
   }
 
+  function openQueueDetails() {
+    if (todayPendingItems.length === 0 && doneItems.length > 0) {
+      setTab("done");
+    }
+    setShowQueueDetails(true);
+  }
+
+  function navigateHomeAfterCompletion(summary: ReviewCompletionSummary) {
+    navigation.navigate("Home", {
+      reviewCompletedAt: summary.createdAt,
+      reviewCompletedCount: summary.completedCount,
+      reviewCompletedMode: summary.mode,
+    });
+    setCompletionSummary(null);
+  }
+
   if (reviewQueueQuery.isLoading) {
     return <ScreenLoadingState text="正在加载复习队列..." />;
   }
@@ -309,113 +297,29 @@ export function ReviewScreen({ navigation, route }: Props) {
 
   if (practiceMode !== "idle" && currentPracticeItem && currentQuestion) {
     return (
-      <ScrollView
-        ref={practiceScrollRef}
-        style={layoutStyles.screen}
-        contentContainerStyle={[
-          styles.content,
-          {
-            paddingTop: spacing.sm + insets.top,
-            paddingBottom: spacing.xxl + Math.max(insets.bottom, spacing.md),
-          },
-        ]}
-        contentInsetAdjustmentBehavior="never"
-        scrollIndicatorInsets={{
-          top: insets.top,
-          bottom: Math.max(insets.bottom, spacing.md),
-        }}
-        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
-        alwaysBounceVertical
-        keyboardShouldPersistTaps="handled"
-      >
-        <ProgressHeader
-          lessonTitle={practiceMode === "batch" ? "今日复习" : "快速复习"}
-          currentStep={practiceIndex + 1}
-          totalSteps={practiceItems.length}
-        />
-
-        <View style={styles.rowTop}>
-          <StatusChip label={typeLabelMap[currentPracticeItem.targetType]} tone="primary" />
-          <View style={styles.practiceActions}>
-            {practiceMode === "batch" && practiceItems.length > 1 && !answerResult ? (
-              <Pressable hitSlop={8} onPress={skipCurrentPracticeItem}>
-                <Text style={styles.linkMuted}>跳过本题</Text>
-              </Pressable>
-            ) : null}
-            <Pressable hitSlop={8} onPress={exitPractice}>
-              <Text style={styles.link}>返回队列</Text>
-            </Pressable>
-          </View>
-        </View>
-        {practiceHint ? <Text style={styles.hintText}>{practiceHint}</Text> : null}
-
-        <AppCard style={styles.itemCard}>
-          <Text style={textStyles.title}>{currentPracticeItem.title}</Text>
-          <Text style={styles.cardText}>{currentQuestion.stem}</Text>
-          <View style={styles.optionWrap}>
-            {currentQuestion.options.map((option, idx) => {
-              const active = selectedOption === idx;
-              return (
-                <Pressable
-                  key={`${currentPracticeItem.id}_${option}`}
-                  onPress={() => {
-                    if (!answerResult) {
-                      setSelectedOption(idx);
-                    }
-                  }}
-                  style={[styles.option, active && styles.optionActive]}
-                >
-                  <Text style={[textStyles.body, active && styles.optionTextActive]}>
-                    {option}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </AppCard>
-
-        {!answerResult ? (
-          <AppButton
-            label={reviewAnswerMutation.isPending ? "判题中..." : "提交答案"}
-            onPress={() => {
-              submitPracticeAnswer();
-            }}
-            disabled={selectedOption == null || reviewAnswerMutation.isPending}
-          />
-        ) : (
-          <>
-            <FeedbackBox
-              isCorrect={answerResult.correct}
-              message={answerResult.feedback.message}
-              evidence={answerResult.feedback.evidence}
-            />
-            {showPracticeRetryActions ? (
-              <View style={styles.practiceActionRow}>
-                <View style={styles.practiceActionCell}>
-                  <AppButton label="再做一次" onPress={resetPracticeStep} />
-                </View>
-                <View style={styles.practiceActionCell}>
-                  <AppButton
-                    label={isPracticeLast ? "先完成复习" : "先继续"}
-                    onPress={() => {
-                      completeCurrentAndGoNext();
-                    }}
-                    variant="secondary"
-                  />
-                </View>
-              </View>
-            ) : (
-              <AppButton
-                label={isPracticeLast ? "完成复习" : "下一题"}
-                onPress={() => {
-                  completeCurrentAndGoNext();
-                }}
-              />
-            )}
-          </>
-        )}
-        {practiceSubmitError ? <Text style={styles.errorText}>{practiceSubmitError}</Text> : null}
-      </ScrollView>
+      <ReviewPracticeStage
+        topInset={insets.top}
+        bottomInset={insets.bottom}
+        practiceMode={practiceMode}
+        practiceIndex={practiceIndex}
+        practiceItems={practiceItems}
+        currentPracticeItem={currentPracticeItem}
+        currentQuestion={currentQuestion}
+        selectedOption={selectedOption}
+        answerResult={answerResult}
+        practiceHint={practiceHint}
+        practiceSubmitError={practiceSubmitError}
+        answerPending={reviewAnswerMutation.isPending}
+        isPracticeLast={isPracticeLast}
+        showRetryActions={showPracticeRetryActions}
+        scrollRef={practiceScrollRef}
+        onSelectOption={setSelectedOption}
+        onSkip={skipCurrentPracticeItem}
+        onExit={exitPractice}
+        onSubmit={submitPracticeAnswer}
+        onRetry={resetPracticeStep}
+        onContinue={completeCurrentAndGoNext}
+      />
     );
   }
 
@@ -449,234 +353,40 @@ export function ReviewScreen({ navigation, route }: Props) {
         />
       }
     >
-      <AppCard style={styles.reviewHeroCard}>
-        <View style={styles.reviewHeroInner}>
-          <MascotBuddy
-            state={todayPendingItems.length > 0 ? "teacher" : "happy"}
-            size={92}
-            speech={todayPendingItems.length > 0 ? "今天先做一题就够了" : "今天的复习已经完成啦"}
-          />
-          <View style={styles.reviewHeroCopy}>
-            <View style={styles.rowTop}>
-              <Text style={textStyles.h2}>温和复习</Text>
-              <StatusChip
-                label={todayPendingItems.length > 0 ? `${todayPendingItems.length} 待复习` : "已清空"}
-                tone={todayPendingItems.length > 0 ? "accent" : "primary"}
-              />
-            </View>
-            <Text style={styles.cardText}>
-              {todayPendingItems.length > 0
-                ? "不用一次做完。先复习眼前这一题，系统会自动继续安排。"
-                : "今天需要巩固的内容已经清空。下一次学习建议从首页拍照进入。"}
-            </Text>
-            {nextPendingItem ? (
-              <View style={styles.reviewFocusWrap}>
-                <View style={styles.reviewFocusHeader}>
-                  <Text style={styles.reviewFocusEyebrow}>今天最该先做</Text>
-                  <View style={styles.reviewFocusChipRow}>
-                    <StatusChip label={typeLabelMap[nextPendingItem.targetType]} tone="primary" />
-                    <StatusChip label={difficultyLabelMap[nextPendingItem.difficulty]} />
-                  </View>
-                </View>
-                <Text style={styles.reviewFocusTitle}>{nextPendingItem.title}</Text>
-                <Text style={styles.reviewFocusMeta}>
-                  到期：{dueTextMap[nextPendingItem.dueAt]} · 做完这题，系统会判断下一题要不要继续做
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.reviewFocusWrap}>
-                <Text style={styles.reviewFocusEyebrow}>今天的结果</Text>
-                <Text style={styles.reviewFocusTitle}>
-                  已完成 {doneItems.length} 项复习，今天先到这里就可以。
-                </Text>
-                <Text style={styles.reviewFocusMeta}>
-                  如果还想继续推进新内容，直接回首页拍一页。
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
-
-        <View style={styles.reviewHeroActionRow}>
-          <View style={styles.reviewHeroActionCell}>
-            <AppButton
-              label={todayPendingItems.length > 0 ? "马上复习这一题" : "回首页拍照"}
-              onPress={
-                todayPendingItems.length > 0 && nextPendingItem
-                  ? () => startSinglePractice(nextPendingItem)
-                  : () => navigation.navigate("Home")
-              }
-            />
-          </View>
-          <View style={styles.reviewHeroActionCell}>
-            <AppButton
-              label={todayPendingItems.length > 1 ? `连续复习 ${todayPendingItems.length} 题` : "查看队列和历史"}
-              onPress={
-                todayPendingItems.length > 1
-                  ? startBatchPractice
-                  : () => {
-                      if (todayPendingItems.length === 0 && doneItems.length > 0) {
-                        setTab("done");
-                      }
-                      setShowQueueDetails((prev) => !prev);
-                    }
-              }
-              variant="secondary"
-            />
-          </View>
-        </View>
-      </AppCard>
+      <ReviewHeroCard
+        pendingCount={todayPendingItems.length}
+        doneCount={doneItems.length}
+        nextPendingItem={nextPendingItem}
+        primaryActionLabel={todayPendingItems.length > 0 ? "马上复习这一题" : "回首页拍照"}
+        secondaryActionLabel={todayPendingItems.length > 1 ? `连续复习 ${todayPendingItems.length} 题` : "查看队列和历史"}
+        onPrimaryAction={
+          todayPendingItems.length > 0 && nextPendingItem
+            ? () => startSinglePractice(nextPendingItem)
+            : () => navigation.navigate("Home")
+        }
+        onSecondaryAction={todayPendingItems.length > 1 ? startBatchPractice : openQueueDetails}
+      />
 
       {completionSummary ? (
-        <Animated.View
-          style={[
-            styles.summaryWrap,
-            {
-              opacity: summaryAnim,
-              transform: [
-                {
-                  translateY: summaryAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [8, 0],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <AppCard style={[styles.itemCard, styles.summaryCard]}>
-            <View style={styles.summaryCardInner}>
-              <MascotBuddy
-                state="teacher"
-                size={88}
-                speech={completionSummary.mode === "batch" ? "今天的巩固完成了" : "这次复习很稳"}
-              />
-              <View style={styles.summaryCopy}>
-                <View style={styles.rowTop}>
-                  <Text style={textStyles.title}>复习完成</Text>
-                  <StatusChip tone="accent" label="已达成" />
-                </View>
-                <Text style={styles.cardText}>
-                  {completionSummary.mode === "batch"
-                    ? `你已完成今天复习，共 ${completionSummary.completedCount} 题。`
-                    : "你已完成一次快速复习。"}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.actionRow}>
-              <Pressable hitSlop={8} onPress={() => setCompletionSummary(null)}>
-                <Text style={styles.link}>收起提示</Text>
-              </Pressable>
-              <Pressable
-                hitSlop={8}
-                onPress={() => {
-                  navigation.navigate("Home", {
-                    reviewCompletedAt: completionSummary.createdAt,
-                    reviewCompletedCount: completionSummary.completedCount,
-                    reviewCompletedMode: completionSummary.mode,
-                  });
-                  setCompletionSummary(null);
-                }}
-              >
-                <Text style={styles.link}>回首页拍照</Text>
-              </Pressable>
-            </View>
-          </AppCard>
-          </Animated.View>
-      ) : null}
-
-      <Pressable
-        hitSlop={8}
-        onPress={() => setShowQueueDetails((prev) => !prev)}
-        style={({ pressed }) => [styles.queueDisclosure, pressed && styles.queueDisclosurePressed]}
-      >
-        <View style={styles.queueDisclosureCopy}>
-          <Text style={styles.queueDisclosureTitle}>
-            {showQueueDetails ? "收起复习队列与历史" : "查看复习队列与历史"}
-          </Text>
-          <Text style={styles.queueDisclosureMeta}>
-            {todayPendingItems.length > 0
-              ? `待复习 ${todayPendingItems.length} 项，已完成 ${doneItems.length} 项`
-              : doneItems.length > 0
-                ? `今天已完成 ${doneItems.length} 项复习，记录都收在这里`
-                : "默认先把注意力留给眼前这一题"}
-          </Text>
-        </View>
-        <Ionicons
-          name={showQueueDetails ? "chevron-up-outline" : "chevron-down-outline"}
-          size={18}
-          color={colors.primary500}
+        <ReviewCompletionCard
+          summary={completionSummary}
+          summaryAnim={summaryAnim}
+          onDismiss={() => setCompletionSummary(null)}
+          onBackHome={() => navigateHomeAfterCompletion(completionSummary)}
         />
-      </Pressable>
-
-      {showQueueDetails ? (
-        <>
-          <View style={styles.segment}>
-            <Pressable
-              hitSlop={8}
-              onPress={() => setTab("today")}
-              style={[styles.segmentBtn, tab === "today" && styles.segmentBtnActive]}
-            >
-              <Text style={[styles.segmentText, tab === "today" && styles.segmentTextActive]}>今日待复习</Text>
-            </Pressable>
-            <Pressable
-              hitSlop={8}
-              onPress={() => setTab("done")}
-              style={[styles.segmentBtn, tab === "done" && styles.segmentBtnActive]}
-            >
-              <Text style={[styles.segmentText, tab === "done" && styles.segmentTextActive]}>已完成</Text>
-            </Pressable>
-          </View>
-
-          <View style={styles.queueSectionHead}>
-            <Text style={styles.queueSectionTitle}>{tab === "today" ? "手动查看复习队列" : "最近完成记录"}</Text>
-            <Text style={styles.queueSectionMeta}>
-              {tab === "today"
-                ? list.length > 0
-                  ? `共 ${list.length} 项待巩固`
-                  : "当前没有待复习内容"
-                : list.length > 0
-                  ? `共 ${list.length} 项已完成`
-                  : "完成后会出现在这里"}
-            </Text>
-          </View>
-
-          <View style={styles.list}>
-            {list.length === 0 ? (
-              <ScreenEmptyState
-                title={tab === "today" ? "今天没有待复习内容" : "暂无已完成复习"}
-                message={tab === "today" ? "可以回首页拍照生成新的学习内容。" : "完成后会在这里看到历史记录。"}
-                actionLabel={tab === "today" ? "回首页拍照" : undefined}
-                onAction={
-                  tab === "today"
-                    ? () =>
-                        navigation.navigate("Home")
-                    : undefined
-                }
-              />
-            ) : (
-              list.map((item) => (
-                <AppCard key={item.id} style={styles.itemCard}>
-                  <View style={styles.itemHeader}>
-                    <Text style={textStyles.title}>{item.title}</Text>
-                    <StatusChip label={difficultyLabelMap[item.difficulty]} tone="primary" />
-                  </View>
-                  <View style={styles.row}>
-                    <StatusChip label={typeLabelMap[item.targetType]} />
-                    <Text style={textStyles.meta}>到期：{dueTextMap[item.dueAt]}</Text>
-                  </View>
-                  <View style={styles.actionRow}>
-                    <StatusChip label={item.status === "pending" ? "待巩固" : "已完成"} />
-                    <Pressable hitSlop={8} onPress={() => startSinglePractice(item)}>
-                      <Text style={styles.link}>{item.status === "pending" ? "快速复习" : "再练一次"}</Text>
-                    </Pressable>
-                  </View>
-                </AppCard>
-              ))
-            )}
-          </View>
-        </>
       ) : null}
+
+      <ReviewQueuePanel
+        showQueueDetails={showQueueDetails}
+        tab={tab}
+        todayPendingCount={todayPendingItems.length}
+        doneCount={doneItems.length}
+        list={list}
+        onToggle={() => setShowQueueDetails((prev) => !prev)}
+        onTabChange={setTab}
+        onPracticeItem={startSinglePractice}
+        onNavigateHome={() => navigation.navigate("Home")}
+      />
 
       {tab === "today" && todayPendingItems.length === 0 ? (
         <AppCard style={styles.itemCard}>
@@ -696,216 +406,11 @@ const styles = StyleSheet.create({
     padding: spacing.pageHorizontal,
     gap: spacing.md,
   },
-  reviewHeroCard: {
-    gap: spacing.sm,
-  },
-  reviewHeroInner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  reviewHeroCopy: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  reviewFocusWrap: {
-    borderRadius: radius.md,
-    backgroundColor: colors.primary50,
-    borderWidth: 1,
-    borderColor: colors.primary200,
-    padding: spacing.sm,
-    gap: spacing.xs,
-  },
-  reviewFocusHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  reviewFocusChipRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    flexWrap: "wrap",
-  },
-  reviewFocusEyebrow: {
-    ...textStyles.meta,
-    color: colors.primary600,
-  },
-  reviewFocusTitle: {
-    ...textStyles.title,
-    color: colors.textPrimary,
-  },
-  reviewFocusMeta: {
-    ...textStyles.caption,
-    color: colors.textSecondary,
-  },
-  reviewHeroActionRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  reviewHeroActionCell: {
-    flex: 1,
-  },
-  segment: {
-    backgroundColor: colors.primary50,
-    borderRadius: radius.md,
-    padding: spacing.xs,
-    flexDirection: "row",
-    gap: spacing.xs,
-  },
-  segmentBtn: {
-    flex: 1,
-    minHeight: 42,
-    borderRadius: radius.sm,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  segmentBtnActive: {
-    backgroundColor: colors.bgCard,
-  },
-  segmentText: {
-    ...textStyles.meta,
-    color: colors.textSecondary,
-    fontWeight: "600",
-  },
-  segmentTextActive: {
-    color: colors.textPrimary,
-  },
-  list: {
-    gap: spacing.sm,
-  },
-  queueDisclosure: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    backgroundColor: colors.bgElevated,
-    padding: spacing.sm,
-  },
-  queueDisclosurePressed: {
-    opacity: 0.92,
-  },
-  queueDisclosureCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  queueDisclosureTitle: {
-    ...textStyles.meta,
-    color: colors.textPrimary,
-  },
-  queueDisclosureMeta: {
-    ...textStyles.caption,
-    color: colors.textSecondary,
-  },
-  queueSectionHead: {
-    gap: 2,
-  },
-  queueSectionTitle: {
-    ...textStyles.meta,
-    color: colors.textPrimary,
-  },
-  queueSectionMeta: {
-    ...textStyles.caption,
-    color: colors.textTertiary,
-  },
-  focusCard: {
-    gap: spacing.xs,
-  },
   itemCard: {
     gap: spacing.sm,
-  },
-  practiceActionRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  practiceActionCell: {
-    flex: 1,
-  },
-  itemHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  rowTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  link: {
-    ...textStyles.meta,
-    color: colors.primary500,
   },
   cardText: {
     ...textStyles.body,
     color: colors.textSecondary,
-  },
-  errorText: {
-    ...textStyles.caption,
-    color: colors.error,
-  },
-  actionRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  practiceActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-  },
-  linkMuted: {
-    ...textStyles.meta,
-    color: colors.textSecondary,
-  },
-  hintText: {
-    ...textStyles.caption,
-    color: colors.textTertiary,
-    marginTop: -spacing.xs,
-  },
-  optionWrap: {
-    marginTop: spacing.xs,
-    gap: spacing.sm,
-  },
-  option: {
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    backgroundColor: "#F8FBF9",
-    padding: spacing.md,
-  },
-  optionActive: {
-    borderColor: colors.primary500,
-    backgroundColor: colors.primary100,
-  },
-  optionTextActive: {
-    color: colors.textPrimary,
-    fontWeight: "600",
-  },
-  summaryWrap: {
-    marginTop: spacing.xs,
-  },
-  summaryCard: {
-    borderColor: colors.accent500,
-    borderWidth: 1,
-    backgroundColor: colors.accent100,
-  },
-  summaryCardInner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  summaryCopy: {
-    flex: 1,
-    gap: spacing.xs,
   },
 });
