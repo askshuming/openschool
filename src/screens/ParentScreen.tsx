@@ -485,6 +485,40 @@ export function ParentScreen({ navigation }: Props) {
   const lessonSuggestion =
     activeLesson?.parentSuggestion ??
     "建议优先训练主旨归纳：先说段意，再合并成完整中心句。";
+  const diagnosisItems = [
+    {
+      label: "字词理解",
+      shortLabel: "字词没懂",
+      value: report.errorDistribution.vocab_unknown,
+      summary: "孩子更容易因为字词没懂而卡住题意或课文。",
+    },
+    {
+      label: "证据句定位",
+      shortLabel: "证据句没找到",
+      value: report.errorDistribution.evidence_missed,
+      summary: "孩子已经读过原文，但定位不到该用哪一句来回答。",
+    },
+    {
+      label: "主旨概括",
+      shortLabel: "主旨偏差",
+      value: report.errorDistribution.main_idea_off,
+      summary: "孩子能说出局部内容，但还需要帮助把意思收成中心句。",
+    },
+  ] as const;
+  const topDiagnosisItem = diagnosisItems.reduce((highest, item) =>
+    item.value > highest.value ? item : highest,
+  );
+  const recitationUnstableCount = report.recitation.unstableSegments.length;
+  const lessonProgressSummary =
+    lessons.length > 0
+      ? `本周已经完成 ${safeCompletedLessons}/${lessons.length} 个内容，当前重点在「${activeLesson?.title ?? "待安排内容"}」。`
+      : "当前还没有可展示的标准内容。";
+  const activeLessonStatus =
+    activeLessonId === sessionLessonId && hasInProgress
+      ? "学习中"
+      : activeLesson
+        ? "已安排"
+        : "待安排";
   const canSaveSettings = Boolean(
     parentId &&
       parentSettings &&
@@ -500,6 +534,20 @@ export function ParentScreen({ navigation }: Props) {
     reviewQueueQuery.isRefetching ||
     (shouldLoadSettings && settingsQuery.isRefetching) ||
     consentRecordQuery.isRefetching;
+  const effectiveDuration = durationDraft ?? parentSettings?.studyDurationLimitMin ?? null;
+  const effectiveReminder = reminderDraft ?? parentSettings?.reminderTime ?? null;
+  const consentRecord = consentRecordQuery.data ?? null;
+  const consentStatusLabel = !parentId
+    ? "暂无家长身份"
+    : consentRecordQuery.isLoading
+      ? "读取中"
+      : consentRecord
+        ? consentRecord.revokedAt
+          ? "已撤回"
+          : "已同意"
+        : "暂无记录";
+  const consentStatusTone =
+    consentRecord && !consentRecord.revokedAt ? "primary" : consentRecord?.revokedAt ? "accent" : "default";
 
   return (
     <ScrollView
@@ -631,63 +679,89 @@ export function ParentScreen({ navigation }: Props) {
             expanded={expandedDetailSections.content}
             onToggle={() => toggleDetailSection("content")}
           >
-                <Text style={textStyles.meta}>学习内容进度概览</Text>
-                <View style={styles.metaRow}>
-                  {lessons.map((lesson, idx) => {
-                    const status =
-                      lesson.id === sessionLessonId && hasInProgress
-                        ? "学习中"
-                        : idx < safeCompletedLessons
-                          ? "本周已学习"
-                          : "待学习";
-                    return (
-                      <StatusChip
-                        key={lesson.id}
-                        label={`${lesson.title} · ${status}`}
-                        tone={status === "学习中" ? "accent" : "primary"}
-                      />
-                    );
-                  })}
+            <View style={styles.subSectionCard}>
+              <Text style={styles.subSectionEyebrow}>本周内容进度</Text>
+              <Text style={styles.subSectionTitle}>
+                已完成 {safeCompletedLessons}/{Math.max(lessons.length, 1)} 个标准内容
+              </Text>
+              <Text style={styles.subSectionBody}>{lessonProgressSummary}</Text>
+              <View style={styles.metaRow}>
+                {lessons.map((lesson, idx) => {
+                  const status =
+                    lesson.id === sessionLessonId && hasInProgress
+                      ? "学习中"
+                      : idx < safeCompletedLessons
+                        ? "本周已学习"
+                        : "待学习";
+                  return (
+                    <StatusChip
+                      key={lesson.id}
+                      label={`${lesson.title} · ${status}`}
+                      tone={status === "学习中" ? "accent" : "primary"}
+                    />
+                  );
+                })}
+              </View>
+            </View>
+
+            <View style={styles.subSectionCard}>
+              <View style={styles.subSectionHeaderRow}>
+                <View style={styles.subSectionHeaderCopy}>
+                  <Text style={styles.subSectionEyebrow}>当前安排内容</Text>
+                  <Text style={styles.subSectionTitle}>{activeLesson?.title ?? "还没有安排内容"}</Text>
                 </View>
-                <Text style={textStyles.meta}>学习内容详情与建议</Text>
-                <View style={styles.lessonPicker}>
-                  {lessons.map((lesson) => {
-                    const active = lesson.id === activeLessonId;
-                    return (
-                      <Pressable
-                        key={lesson.id}
-                        style={[styles.lessonChip, active && styles.lessonChipActive]}
-                        onPress={() => setSelectedLessonId(lesson.id)}
-                      >
-                        <Text style={[styles.lessonChipText, active && styles.lessonChipTextActive]}>
-                          {lesson.title}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-                <Text style={textStyles.body}>当前内容：{activeLesson?.title ?? "暂无"}</Text>
+                <StatusChip label={activeLessonStatus} tone={activeLessonStatus === "学习中" ? "accent" : "primary"} />
+              </View>
+              <Text style={styles.subSectionBody}>{lessonSuggestion}</Text>
+              <View style={styles.metaRow}>
                 <StatusChip label={`重点能力：${skillLabelMap[lessonFocusTag]}`} tone="accent" />
-                <Text style={styles.meta}>{lessonSuggestion}</Text>
-                <View style={styles.actionButtons}>
-                  <AppButton
-                    label="开始该内容学习"
-                    onPress={() => {
-                      if (!activeLesson) return;
-                      navigation.navigate("Session", {
-                        forceNew: true,
-                        lessonId: activeLesson.id,
-                        generationSource: undefined,
-                      });
-                    }}
-                    disabled={!activeLesson}
-                  />
-                  <AppButton
-                    label="进入温和复习"
-                    variant="secondary"
-                    onPress={() => navigation.navigate("Review")}
-                  />
-                </View>
+                {activeLesson?.unitId ? <StatusChip label={`单元：${activeLesson.unitId}`} /> : null}
+              </View>
+              <Text style={textStyles.meta}>切换当前要看的标准内容</Text>
+              <View style={styles.lessonPicker}>
+                {lessons.map((lesson) => {
+                  const active = lesson.id === activeLessonId;
+                  return (
+                    <Pressable
+                      key={lesson.id}
+                      style={[styles.lessonChip, active && styles.lessonChipActive]}
+                      onPress={() => setSelectedLessonId(lesson.id)}
+                    >
+                      <Text style={[styles.lessonChipText, active && styles.lessonChipTextActive]}>
+                        {lesson.title}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
+            <View style={styles.subSectionCard}>
+              <Text style={styles.subSectionEyebrow}>下一步动作</Text>
+              <Text style={styles.subSectionTitle}>不用重新选课，直接继续眼前这一份</Text>
+              <Text style={styles.subSectionBody}>
+                如果孩子刚拍过内容，优先继续刚才那条学习主线；如果想回到标准内容，也可以从这里直接开始。
+              </Text>
+              <View style={styles.actionButtons}>
+                <AppButton
+                  label="开始该内容学习"
+                  onPress={() => {
+                    if (!activeLesson) return;
+                    navigation.navigate("Session", {
+                      forceNew: true,
+                      lessonId: activeLesson.id,
+                      generationSource: undefined,
+                    });
+                  }}
+                  disabled={!activeLesson}
+                />
+                <AppButton
+                  label="进入温和复习"
+                  variant="secondary"
+                  onPress={() => navigation.navigate("Review")}
+                />
+              </View>
+            </View>
           </ParentDetailSection>
 
           <ParentDetailSection
@@ -696,36 +770,60 @@ export function ParentScreen({ navigation }: Props) {
             expanded={expandedDetailSections.diagnosis}
             onToggle={() => toggleDetailSection("diagnosis")}
           >
-                <Text style={textStyles.meta}>错误分布</Text>
-                <View style={styles.metaRow}>
-                  <StatusChip label={`字词没懂 ${Math.round(report.errorDistribution.vocab_unknown * 100)}%`} />
+            <View style={styles.subSectionCard}>
+              <Text style={styles.subSectionEyebrow}>现在最容易卡住</Text>
+              <Text style={styles.subSectionTitle}>
+                {topDiagnosisItem.label}是当前最需要优先收的能力点
+              </Text>
+              <Text style={styles.subSectionBody}>{topDiagnosisItem.summary}</Text>
+              <View style={styles.metaRow}>
+                {diagnosisItems.map((item) => (
                   <StatusChip
-                    label={`证据句没找到 ${Math.round(report.errorDistribution.evidence_missed * 100)}%`}
-                    tone="accent"
+                    key={item.label}
+                    label={`${item.shortLabel} ${Math.round(item.value * 100)}%`}
+                    tone={item.label === topDiagnosisItem.label ? "accent" : "primary"}
                   />
-                  <StatusChip label={`主旨偏差 ${Math.round(report.errorDistribution.main_idea_off * 100)}%`} />
-                </View>
-                <Text style={textStyles.meta}>朗读/背诵</Text>
-                <Text style={textStyles.body}>本周完成：{report.recitation.completedCount} 次</Text>
-                <View style={styles.metaRow}>
-                  {report.recitation.unstableSegments.length > 0 ? (
-                    report.recitation.unstableSegments.map((segmentId) => (
-                      <StatusChip key={segmentId} label={recitationSegmentLabel(segmentId)} tone="accent" />
-                    ))
-                  ) : (
-                    <StatusChip label="暂无不稳定片段" />
-                  )}
-                </View>
-                <Text style={textStyles.meta}>掌握能力点</Text>
-                <View style={styles.metaRow}>
-                  {progress.masteredTags.length > 0 ? (
-                    progress.masteredTags.map((tag) => (
-                      <StatusChip key={tag} label={skillLabelMap[tag]} tone="primary" />
-                    ))
-                  ) : (
-                    <StatusChip label="掌握能力点会在学习后出现" />
-                  )}
-                </View>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.subSectionCard}>
+              <Text style={styles.subSectionEyebrow}>朗读背诵稳定度</Text>
+              <Text style={styles.subSectionTitle}>
+                本周完成 {report.recitation.completedCount} 次朗读训练
+              </Text>
+              <Text style={styles.subSectionBody}>
+                {recitationUnstableCount > 0
+                  ? `还有 ${recitationUnstableCount} 个片段不够稳定，建议继续用跟读先把这些地方读顺。`
+                  : "当前没有明显不稳定片段，可以继续维持现在的节奏。"}
+              </Text>
+              <View style={styles.metaRow}>
+                {report.recitation.unstableSegments.length > 0 ? (
+                  report.recitation.unstableSegments.map((segmentId) => (
+                    <StatusChip key={segmentId} label={recitationSegmentLabel(segmentId)} tone="accent" />
+                  ))
+                ) : (
+                  <StatusChip label="暂无不稳定片段" />
+                )}
+              </View>
+            </View>
+
+            <View style={styles.subSectionCard}>
+              <Text style={styles.subSectionEyebrow}>已经掌握</Text>
+              <Text style={styles.subSectionTitle}>这些能力点已经开始稳定下来</Text>
+              <Text style={styles.subSectionBody}>
+                孩子做对和读顺之后，会逐步沉淀到这里。掌握越多，系统安排的第一步就会越精准。
+              </Text>
+              <View style={styles.metaRow}>
+                {progress.masteredTags.length > 0 ? (
+                  progress.masteredTags.map((tag) => (
+                    <StatusChip key={tag} label={skillLabelMap[tag]} tone="primary" />
+                  ))
+                ) : (
+                  <StatusChip label="掌握能力点会在学习后出现" />
+                )}
+              </View>
+            </View>
           </ParentDetailSection>
 
           <ParentDetailSection
@@ -738,7 +836,21 @@ export function ParentScreen({ navigation }: Props) {
                   <Text style={styles.meta}>当前无可编辑家长设置</Text>
                 ) : (
                   <>
-                    <Text style={textStyles.meta}>学习时长上限</Text>
+                    <View style={styles.subSectionCard}>
+                      <Text style={styles.subSectionEyebrow}>当前学习节奏</Text>
+                      <Text style={styles.subSectionTitle}>
+                        单次学习不超过 {effectiveDuration} 分钟
+                      </Text>
+                      <Text style={styles.subSectionBody}>
+                        每晚 {effectiveReminder} 提醒一次。这里只调整节奏，不影响系统对内容的判断和学习路线安排。
+                      </Text>
+                      <View style={styles.metaRow}>
+                        <StatusChip label={`${effectiveDuration} 分钟上限`} tone="primary" />
+                        <StatusChip label={`提醒 ${effectiveReminder}`} tone="accent" />
+                      </View>
+                    </View>
+
+                    <Text style={textStyles.meta}>单次学习时长</Text>
                     <View style={styles.lessonPicker}>
                       {durationLimitOptions.map((min) => {
                         const active = durationDraft === min;
@@ -759,7 +871,7 @@ export function ParentScreen({ navigation }: Props) {
                         );
                       })}
                     </View>
-                    <Text style={textStyles.meta}>提醒时间</Text>
+                    <Text style={textStyles.meta}>晚上提醒时间</Text>
                     <View style={styles.lessonPicker}>
                       {reminderTimeOptions.map((time) => {
                         const active = reminderDraft === time;
@@ -780,10 +892,7 @@ export function ParentScreen({ navigation }: Props) {
                         );
                       })}
                     </View>
-                    <Text style={styles.meta}>
-                      当前设置：单次学习不超过 {durationDraft ?? parentSettings.studyDurationLimitMin} 分钟，
-                      每日提醒 {reminderDraft ?? parentSettings.reminderTime}
-                    </Text>
+                    <Text style={styles.meta}>调整后点保存即可生效。孩子当前学习主线不会被打断。</Text>
                     {settingsSaveError ? <Text style={styles.error}>{settingsSaveError}</Text> : null}
                     {settingsSaveMessage ? <Text style={styles.success}>{settingsSaveMessage}</Text> : null}
                     <AppButton
@@ -811,120 +920,147 @@ export function ParentScreen({ navigation }: Props) {
             onToggle={() => toggleDetailSection("data")}
           >
                 <Text style={styles.meta}>接口模式：{getApiModeLabel()}</Text>
-                <Text style={textStyles.meta}>监护人同意记录</Text>
-                {!parentId ? (
-                  <Text style={styles.meta}>请先完成家长登录</Text>
-                ) : consentRecordQuery.isLoading ? (
-                  <Text style={styles.meta}>正在读取同意记录...</Text>
-                ) : consentRecordQuery.isError ? (
-                  <Text style={styles.meta}>
-                    {toUserErrorMessage(consentRecordQuery.error, "同意记录加载失败")}
+
+                <View style={styles.subSectionCard}>
+                  <View style={styles.subSectionHeaderRow}>
+                    <View style={styles.subSectionHeaderCopy}>
+                      <Text style={styles.subSectionEyebrow}>监护人同意记录</Text>
+                      <Text style={styles.subSectionTitle}>当前同意状态</Text>
+                    </View>
+                    <StatusChip label={consentStatusLabel} tone={consentStatusTone} />
+                  </View>
+                  {!parentId ? (
+                    <Text style={styles.subSectionBody}>请先完成家长登录后再查看同意记录。</Text>
+                  ) : consentRecordQuery.isLoading ? (
+                    <Text style={styles.subSectionBody}>正在读取监护人同意记录。</Text>
+                  ) : consentRecordQuery.isError ? (
+                    <Text style={styles.subSectionBody}>
+                      {toUserErrorMessage(consentRecordQuery.error, "同意记录加载失败")}
+                    </Text>
+                  ) : consentRecord ? (
+                    <>
+                      <View style={styles.metaRow}>
+                        <StatusChip label={`关系：${relationLabelMap[consentRecord.relation]}`} tone="primary" />
+                        <StatusChip label={`同意时间：${consentRecord.agreedAt.slice(0, 10)}`} />
+                        {consentRecord.revokedAt ? (
+                          <StatusChip label={`撤回：${consentRecord.revokedAt.slice(0, 10)}`} tone="accent" />
+                        ) : null}
+                      </View>
+                      <Text style={styles.subSectionBody}>记录 ID：{consentRecord.consentId}</Text>
+                    </>
+                  ) : (
+                    <Text style={styles.subSectionBody}>当前还没有监护人同意记录。</Text>
+                  )}
+                  <AppButton
+                    label={consentRecordQuery.isFetching ? "刷新中..." : "刷新同意记录"}
+                    variant="secondary"
+                    onPress={() => {
+                      if (!parentId) {
+                        return;
+                      }
+                      consentRecordQuery.refetch();
+                    }}
+                    disabled={!parentId || consentRecordQuery.isFetching}
+                  />
+                </View>
+
+                <View style={styles.subSectionCard}>
+                  <Text style={styles.subSectionEyebrow}>导出数据</Text>
+                  <Text style={styles.subSectionTitle}>把孩子当前学习记录导出来</Text>
+                  <Text style={styles.subSectionBody}>
+                    会导出学习作答、朗读和本周记录，便于留档或后续查看。
                   </Text>
-                ) : consentRecordQuery.data ? (
-                  <>
-                    <Text style={styles.meta}>关系：{relationLabelMap[consentRecordQuery.data.relation]}</Text>
-                    <Text style={styles.meta}>同意时间：{consentRecordQuery.data.agreedAt}</Text>
-                    {consentRecordQuery.data.revokedAt ? (
-                      <Text style={styles.meta}>撤回时间：{consentRecordQuery.data.revokedAt}</Text>
-                    ) : null}
-                    <Text style={styles.meta}>同意记录ID：{consentRecordQuery.data.consentId}</Text>
-                  </>
-                ) : (
-                  <Text style={styles.meta}>暂无监护人同意记录</Text>
-                )}
-                <AppButton
-                  label={consentRecordQuery.isFetching ? "刷新中..." : "刷新同意记录"}
-                  variant="secondary"
-                  onPress={() => {
-                    if (!parentId) {
-                      return;
-                    }
-                    consentRecordQuery.refetch();
-                  }}
-                  disabled={!parentId || consentRecordQuery.isFetching}
-                />
-                <AppButton
-                  label={
-                    revokeConsentMutation.isPending
-                      ? "撤回中..."
-                      : revokeConfirming
-                        ? "确认撤回监护人同意"
-                        : "撤回监护人同意"
-                  }
-                  variant="ghost"
-                  onPress={() => {
-                    if (!parentId) {
-                      return;
-                    }
-                    if (!revokeConfirming) {
-                      setRevokeConfirming(true);
-                      setDeleteConfirming(false);
-                      setDataManageError("再次点击“确认撤回监护人同意”后将退出当前账号并停止学习流程。");
-                      return;
-                    }
-                    revokeConsentMutation.mutate({
-                      parentId,
-                    });
-                  }}
-                  disabled={!parentId || revokeConsentMutation.isPending}
-                />
-                {revokeConfirming && !revokeConsentMutation.isPending ? (
+                  {exportSummary ? <Text style={styles.subSectionBody}>{exportSummary}</Text> : null}
                   <AppButton
-                    label="取消撤回"
+                    label={exportMutation.isPending ? "导出中..." : "导出学习数据"}
                     variant="secondary"
                     onPress={() => {
-                      setRevokeConfirming(false);
                       setDataManageError(null);
+                      exportMutation.mutate();
                     }}
+                    disabled={exportMutation.isPending || !parentId || !childId}
                   />
-                ) : null}
-                {exportSummary ? <Text style={styles.meta}>{exportSummary}</Text> : null}
-                {dataManageError ? <Text style={styles.error}>{dataManageError}</Text> : null}
-                <AppButton
-                  label={exportMutation.isPending ? "导出中..." : "导出学习数据"}
-                  variant="secondary"
-                  onPress={() => {
-                    setDataManageError(null);
-                    exportMutation.mutate();
-                  }}
-                  disabled={exportMutation.isPending || !parentId || !childId}
-                />
-                <AppButton
-                  label={
-                    deleteMutation.isPending
-                      ? "删除中..."
-                      : deleteConfirming
-                        ? "确认删除孩子数据"
-                        : "删除孩子数据"
-                  }
-                  variant="ghost"
-                  onPress={() => {
-                    if (!parentId || !childId) {
-                      return;
-                    }
-                    if (!deleteConfirming) {
-                      setDeleteConfirming(true);
-                      setRevokeConfirming(false);
-                      setDataManageError("再次点击“确认删除孩子数据”后将删除该孩子全部学习数据。");
-                      return;
-                    }
-                    deleteMutation.mutate({
-                      parentId,
-                      childId,
-                    });
-                  }}
-                  disabled={deleteMutation.isPending || !parentId || !childId}
-                />
-                {deleteConfirming && !deleteMutation.isPending ? (
+                </View>
+
+                <View style={[styles.subSectionCard, styles.dangerCard]}>
+                  <Text style={styles.dangerEyebrow}>危险操作</Text>
+                  <Text style={styles.subSectionTitle}>退出授权或删除孩子数据</Text>
+                  <Text style={styles.subSectionBody}>
+                    这些操作会影响当前账号或学习数据，只在确实需要时再做。
+                  </Text>
+                  {dataManageError ? <Text style={styles.error}>{dataManageError}</Text> : null}
                   <AppButton
-                    label="取消删除"
-                    variant="secondary"
+                    label={
+                      revokeConsentMutation.isPending
+                        ? "撤回中..."
+                        : revokeConfirming
+                          ? "确认撤回监护人同意"
+                          : "撤回监护人同意"
+                    }
+                    variant="ghost"
                     onPress={() => {
-                      setDeleteConfirming(false);
-                      setDataManageError(null);
+                      if (!parentId) {
+                        return;
+                      }
+                      if (!revokeConfirming) {
+                        setRevokeConfirming(true);
+                        setDeleteConfirming(false);
+                        setDataManageError("再次点击“确认撤回监护人同意”后将退出当前账号并停止学习流程。");
+                        return;
+                      }
+                      revokeConsentMutation.mutate({
+                        parentId,
+                      });
                     }}
+                    disabled={!parentId || revokeConsentMutation.isPending}
                   />
-                ) : null}
+                  {revokeConfirming && !revokeConsentMutation.isPending ? (
+                    <AppButton
+                      label="取消撤回"
+                      variant="secondary"
+                      onPress={() => {
+                        setRevokeConfirming(false);
+                        setDataManageError(null);
+                      }}
+                    />
+                  ) : null}
+                  <AppButton
+                    label={
+                      deleteMutation.isPending
+                        ? "删除中..."
+                        : deleteConfirming
+                          ? "确认删除孩子数据"
+                          : "删除孩子数据"
+                    }
+                    variant="ghost"
+                    onPress={() => {
+                      if (!parentId || !childId) {
+                        return;
+                      }
+                      if (!deleteConfirming) {
+                        setDeleteConfirming(true);
+                        setRevokeConfirming(false);
+                        setDataManageError("再次点击“确认删除孩子数据”后将删除该孩子全部学习数据。");
+                        return;
+                      }
+                      deleteMutation.mutate({
+                        parentId,
+                        childId,
+                      });
+                    }}
+                    disabled={deleteMutation.isPending || !parentId || !childId}
+                  />
+                  {deleteConfirming && !deleteMutation.isPending ? (
+                    <AppButton
+                      label="取消删除"
+                      variant="secondary"
+                      onPress={() => {
+                        setDeleteConfirming(false);
+                        setDataManageError(null);
+                      }}
+                    />
+                  ) : null}
+                </View>
           </ParentDetailSection>
         </>
       ) : null}
@@ -973,6 +1109,45 @@ const styles = StyleSheet.create({
   },
   actionButtons: {
     gap: spacing.sm,
+  },
+  subSectionCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    backgroundColor: colors.primary50,
+    padding: spacing.sm,
+    gap: spacing.sm,
+  },
+  subSectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+  },
+  subSectionHeaderCopy: {
+    flex: 1,
+    gap: spacing.xxs,
+  },
+  subSectionEyebrow: {
+    ...textStyles.meta,
+    color: colors.primary600,
+  },
+  dangerEyebrow: {
+    ...textStyles.meta,
+    color: colors.error,
+  },
+  subSectionTitle: {
+    ...textStyles.title,
+    color: colors.textPrimary,
+  },
+  subSectionBody: {
+    ...textStyles.caption,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  dangerCard: {
+    backgroundColor: "#FFF7F5",
+    borderColor: "#F2D7D1",
   },
   meta: {
     ...textStyles.caption,
