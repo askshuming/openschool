@@ -30,26 +30,26 @@ const routeScenarios = [
   {
     routeKind: "text_reading",
     tag: "课文页",
-    title: "先读重点句",
-    body: "适合课文、生字和课后页",
+    title: "拍课文页",
+    body: "系统先带读重点句",
   },
   {
     routeKind: "reading_quiz",
     tag: "阅读题",
-    title: "先圈题干关键词",
-    body: "适合阅读理解、练习题",
+    title: "拍阅读题",
+    body: "系统先带找题干关键词",
   },
   {
     routeKind: "writing_prompt",
     tag: "作文题",
-    title: "先看清要求",
-    body: "适合写话、作文、表达任务",
+    title: "拍作文题",
+    body: "系统先带看清要求",
   },
   {
     routeKind: "vocab_foundation",
     tag: "字词页",
-    title: "先看懂字词",
-    body: "适合生字、词语、默写页",
+    title: "拍字词页",
+    body: "系统先带看懂字词",
   },
 ] as const;
 
@@ -69,12 +69,12 @@ export function HomeCaptureSupportPanel({
           <View style={styles.heroPromiseIcon}>
             <Ionicons name="sparkles-outline" size={16} color={colors.primary600} />
           </View>
-          <Text style={styles.heroPromiseText}>孩子卡在哪一页，就拍哪一页。判断内容和排路线这件事交给系统。</Text>
+          <Text style={styles.heroPromiseText}>孩子卡在哪一页，就拍哪一页。怎么判断内容、先学什么，都交给系统。</Text>
         </View>
 
         <View style={styles.routeFocusCard}>
           <View style={styles.routeFocusTop}>
-            <Text style={styles.routeFocusLabel}>{latestInput ? "这次先做什么" : "这些困难都能直接拍"}</Text>
+            <Text style={styles.routeFocusLabel}>{latestInput ? "这次会先带到这里" : "这些场景都能直接拍"}</Text>
             {latestInput ? <StatusChip label={latestInput.routeLabel} tone="primary" /> : null}
           </View>
           <Text style={styles.routeFocusTitle}>
@@ -83,7 +83,7 @@ export function HomeCaptureSupportPanel({
           <Text style={styles.routeFocusBody}>
             {latestInput
               ? `${getContentTypeLabel(latestInput.contentType)} · ${getRelativeInputTimeLabel(latestInput.createdAt)} · ${latestInput.primaryChallenge}`
-              : `${childGradeLabel} · ${focusLabel}优先，系统会先判断卡点，再安排正确的第一步。`}
+              : `${childGradeLabel} · ${focusLabel}优先，不用先判断类型，系统会自动安排第一步。`}
           </Text>
         </View>
 

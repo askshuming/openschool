@@ -26,6 +26,8 @@ interface GenerateAssetMeta {
   base64?: string | null;
 }
 
+type PendingPickerKind = "camera" | "library" | "document";
+
 interface HomeFlowNotice {
   id: string;
   title: string;
@@ -43,6 +45,14 @@ interface GeneratedJourneySnapshot {
   generatedTaskCount: number;
   lessonId: string | null;
   createdAt: string;
+}
+
+interface PendingInputSelection {
+  source: InputSource;
+  pickerKind: PendingPickerKind;
+  preferredContentType?: InputContentType;
+  asset: GenerateAssetMeta;
+  previewInput: ContentInputRecord;
 }
 
 interface UseHomeGenerationFlowArgs {
@@ -111,6 +121,7 @@ export function useHomeGenerationFlow({
   const [generatingSource, setGeneratingSource] = useState<InputSource | null>(null);
   const [generationStepIndex, setGenerationStepIndex] = useState(0);
   const [pendingGeneratedInput, setPendingGeneratedInput] = useState<ContentInputRecord | null>(null);
+  const [pendingSelection, setPendingSelection] = useState<PendingInputSelection | null>(null);
 
   const activeGeneratedInput = pendingGeneratedInput ?? latestInput;
 
@@ -145,6 +156,33 @@ export function useHomeGenerationFlow({
       });
     },
     [onNotice],
+  );
+
+  const openSelectionPreview = useCallback(
+    (
+      source: InputSource,
+      pickerKind: PendingPickerKind,
+      preferredContentType: InputContentType | undefined,
+      asset: GenerateAssetMeta,
+    ) => {
+      const previewInput = createContentInputRecord({
+        source,
+        countSeed: recentInputCount,
+        focusLabel,
+        gradeLabel,
+        lessonId: launchLessonId,
+        preferredContentType,
+        asset,
+      });
+      setPendingSelection({
+        source,
+        pickerKind,
+        preferredContentType,
+        asset,
+        previewInput,
+      });
+    },
+    [focusLabel, gradeLabel, launchLessonId, recentInputCount],
   );
 
   const queueGeneratedLesson = useCallback(
@@ -295,38 +333,104 @@ export function useHomeGenerationFlow({
     ],
   );
 
+  const pickCameraAsset = useCallback(async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      showNotice("camera-permission", "需要相机权限", "允许相机权限后，才能拍照并安排当前学习内容。", "primary");
+      return null;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ["images"],
+      quality: 0.84,
+      allowsEditing: false,
+      base64: true,
+    });
+    if (result.canceled || !result.assets?.length) {
+      return null;
+    }
+
+    const asset = result.assets[0];
+    return {
+      name: asset.fileName,
+      uri: asset.uri,
+      mimeType: asset.mimeType,
+      size: asset.fileSize,
+      width: asset.width,
+      height: asset.height,
+      base64: asset.base64,
+    } satisfies GenerateAssetMeta;
+  }, [showNotice]);
+
+  const pickPhotoLibraryAsset = useCallback(async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      showNotice("library-permission", "需要照片权限", "允许照片权限后，才能从相册选择图片并安排学习内容。", "primary");
+      return null;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.84,
+      allowsEditing: false,
+      base64: true,
+    });
+    if (result.canceled || !result.assets?.length) {
+      return null;
+    }
+
+    const asset = result.assets[0];
+    return {
+      name: asset.fileName,
+      uri: asset.uri,
+      mimeType: asset.mimeType,
+      size: asset.fileSize,
+      width: asset.width,
+      height: asset.height,
+      base64: asset.base64,
+    } satisfies GenerateAssetMeta;
+  }, [showNotice]);
+
+  const pickDocumentAsset = useCallback(async (): Promise<{
+    asset: GenerateAssetMeta;
+    preferredContentType?: InputContentType;
+  } | null> => {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: ["image/*", "application/pdf"],
+      copyToCacheDirectory: true,
+      multiple: false,
+    });
+    if (result.canceled || !result.assets?.length) {
+      return null;
+    }
+
+    const asset = result.assets[0];
+    const assetName = asset.name?.toLowerCase() ?? "";
+    const preferredContentType =
+      asset.mimeType === "application/pdf" || assetName.endsWith(".pdf") ? "pdf" : undefined;
+
+    return {
+      asset: {
+        name: asset.name,
+        uri: asset.uri,
+        mimeType: asset.mimeType,
+        size: asset.size,
+      } satisfies GenerateAssetMeta,
+      preferredContentType,
+    };
+  }, []);
+
   const handleCameraStart = useCallback(async () => {
-    if (generatingSource || !canStartGenerateFlow()) {
+    if (pendingSelection || generatingSource || !canStartGenerateFlow()) {
       return;
     }
 
     try {
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
-      if (!permission.granted) {
-        showNotice("camera-permission", "需要相机权限", "允许相机权限后，才能拍照并安排当前学习内容。", "primary");
+      const asset = await pickCameraAsset();
+      if (!asset) {
         return;
       }
-
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ["images"],
-        quality: 0.84,
-        allowsEditing: false,
-        base64: true,
-      });
-      if (result.canceled || !result.assets?.length) {
-        return;
-      }
-
-      const asset = result.assets[0];
-      void startGenerateFlow("camera", undefined, {
-        name: asset.fileName,
-        uri: asset.uri,
-        mimeType: asset.mimeType,
-        size: asset.fileSize,
-        width: asset.width,
-        height: asset.height,
-        base64: asset.base64,
-      });
+      openSelectionPreview("camera", "camera", undefined, asset);
     } catch (error) {
       showNotice(
         "camera-error",
@@ -335,40 +439,26 @@ export function useHomeGenerationFlow({
         "primary",
       );
     }
-  }, [canStartGenerateFlow, generatingSource, showNotice, startGenerateFlow]);
+  }, [
+    canStartGenerateFlow,
+    generatingSource,
+    openSelectionPreview,
+    pendingSelection,
+    pickCameraAsset,
+    showNotice,
+  ]);
 
   const handlePhotoLibraryStart = useCallback(async () => {
-    if (generatingSource || !canStartGenerateFlow()) {
+    if (pendingSelection || generatingSource || !canStartGenerateFlow()) {
       return;
     }
 
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        showNotice("library-permission", "需要照片权限", "允许照片权限后，才能从相册选择图片并安排学习内容。", "primary");
+      const asset = await pickPhotoLibraryAsset();
+      if (!asset) {
         return;
       }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        quality: 0.84,
-        allowsEditing: false,
-        base64: true,
-      });
-      if (result.canceled || !result.assets?.length) {
-        return;
-      }
-
-      const asset = result.assets[0];
-      void startGenerateFlow("upload", undefined, {
-        name: asset.fileName,
-        uri: asset.uri,
-        mimeType: asset.mimeType,
-        size: asset.fileSize,
-        width: asset.width,
-        height: asset.height,
-        base64: asset.base64,
-      });
+      openSelectionPreview("upload", "library", undefined, asset);
     } catch (error) {
       showNotice(
         "library-error",
@@ -377,41 +467,95 @@ export function useHomeGenerationFlow({
         "primary",
       );
     }
-  }, [canStartGenerateFlow, generatingSource, showNotice, startGenerateFlow]);
+  }, [
+    canStartGenerateFlow,
+    generatingSource,
+    openSelectionPreview,
+    pendingSelection,
+    pickPhotoLibraryAsset,
+    showNotice,
+  ]);
 
   const handleDocumentUploadStart = useCallback(async () => {
-    if (generatingSource || !canStartGenerateFlow()) {
+    if (pendingSelection || generatingSource || !canStartGenerateFlow()) {
       return;
     }
 
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ["image/*", "application/pdf"],
-        copyToCacheDirectory: true,
-        multiple: false,
-      });
-      if (result.canceled || !result.assets?.length) {
+      const result = await pickDocumentAsset();
+      if (!result) {
         return;
       }
-
-      const asset = result.assets[0];
-      const assetName = asset.name?.toLowerCase() ?? "";
-      const preferredContentType =
-        asset.mimeType === "application/pdf" || assetName.endsWith(".pdf") ? "pdf" : undefined;
-
-      void startGenerateFlow("upload", preferredContentType, {
-        name: asset.name,
-        uri: asset.uri,
-        mimeType: asset.mimeType,
-        size: asset.size,
-      });
+      openSelectionPreview("upload", "document", result.preferredContentType, result.asset);
     } catch (error) {
       showNotice("upload-error", "暂时无法打开文件", toUserErrorMessage(error, "请稍后重试。"), "primary");
     }
-  }, [canStartGenerateFlow, generatingSource, showNotice, startGenerateFlow]);
+  }, [
+    canStartGenerateFlow,
+    generatingSource,
+    openSelectionPreview,
+    pendingSelection,
+    pickDocumentAsset,
+    showNotice,
+  ]);
+
+  const dismissPendingSelection = useCallback(() => {
+    setPendingSelection(null);
+  }, []);
+
+  const confirmPendingSelection = useCallback(() => {
+    if (!pendingSelection) {
+      return;
+    }
+
+    const { source, preferredContentType, asset } = pendingSelection;
+    setPendingSelection(null);
+    void startGenerateFlow(source, preferredContentType, asset);
+  }, [pendingSelection, startGenerateFlow]);
+
+  const retakePendingSelection = useCallback(async () => {
+    if (!pendingSelection) {
+      return;
+    }
+
+    const { pickerKind } = pendingSelection;
+    setPendingSelection(null);
+
+    try {
+      if (pickerKind === "camera") {
+        const asset = await pickCameraAsset();
+        if (asset) {
+          openSelectionPreview("camera", "camera", undefined, asset);
+        }
+        return;
+      }
+
+      if (pickerKind === "library") {
+        const asset = await pickPhotoLibraryAsset();
+        if (asset) {
+          openSelectionPreview("upload", "library", undefined, asset);
+        }
+        return;
+      }
+
+      const result = await pickDocumentAsset();
+      if (result) {
+        openSelectionPreview("upload", "document", result.preferredContentType, result.asset);
+      }
+    } catch (error) {
+      showNotice("retake-error", "暂时无法重新选择", toUserErrorMessage(error, "请稍后重试。"), "primary");
+    }
+  }, [
+    openSelectionPreview,
+    pendingSelection,
+    pickCameraAsset,
+    pickDocumentAsset,
+    pickPhotoLibraryAsset,
+    showNotice,
+  ]);
 
   const openUploadChooser = useCallback(() => {
-    if (generatingSource || !canStartGenerateFlow()) {
+    if (pendingSelection || generatingSource || !canStartGenerateFlow()) {
       return;
     }
 
@@ -440,6 +584,7 @@ export function useHomeGenerationFlow({
     generatingSource,
     handleDocumentUploadStart,
     handlePhotoLibraryStart,
+    pendingSelection,
   ]);
 
   return {
@@ -447,7 +592,11 @@ export function useHomeGenerationFlow({
     generatingSource,
     generationStepIndex,
     activeGeneratedInput,
+    pendingSelection,
     handleCameraStart,
     openUploadChooser,
+    dismissPendingSelection,
+    confirmPendingSelection,
+    retakePendingSelection,
   };
 }

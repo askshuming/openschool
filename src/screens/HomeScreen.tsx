@@ -18,6 +18,7 @@ import { trackEvent } from "../analytics/tracker";
 import { analyzeContentApi, getApiModeLabel } from "../api/service";
 import { MascotBuddy } from "../components/MascotBuddy";
 import { StatusChip } from "../components/StatusChip";
+import { HomeCaptureConfirmSheet } from "../components/home/HomeCaptureConfirmSheet";
 import { HomeCaptureSupportPanel } from "../components/home/HomeCaptureSupportPanel";
 import { HomeGenerationOverlay } from "../components/home/HomeGenerationOverlay";
 import { HomeJourneyCard } from "../components/home/HomeJourneyCard";
@@ -246,8 +247,12 @@ export function HomeScreen({ navigation, route }: Props) {
     generatingSource,
     generationStepIndex,
     activeGeneratedInput,
+    pendingSelection,
     handleCameraStart,
     openUploadChooser,
+    dismissPendingSelection,
+    confirmPendingSelection,
+    retakePendingSelection,
   } = useHomeGenerationFlow({
     launchLessonId: launchLesson?.id ?? null,
     latestInput,
@@ -272,19 +277,19 @@ export function HomeScreen({ navigation, route }: Props) {
     {
       title: "先看清这一页",
       detail: activeGeneratedInput
-        ? `${getContentTypeLabel(activeGeneratedInput.contentType)} · ${activeGeneratedInput.title}，正在识别知识点和题型`
-        : "系统正在识别这一页里的知识点和题型",
+        ? `${getContentTypeLabel(activeGeneratedInput.contentType)} · ${activeGeneratedInput.title}`
+        : "系统先把这一页看清楚",
     },
     {
-      title: "再匹配这次该走哪条路线",
+      title: "再找出孩子卡在哪里",
       detail: activeGeneratedInput
-        ? `${activeGeneratedInput.routeLabel} · 当前卡点：${activeGeneratedInput.primaryChallenge}`
+        ? `${activeGeneratedInput.routeLabel} · ${activeGeneratedInput.primaryChallenge}`
         : `${childGradeLabel} · ${focusLabel}优先 · ${readingLevelLabel}`,
     },
     {
-      title: "最后安排成可开始的第一步",
+      title: "最后直接带到第一步",
       detail: activeGeneratedInput
-        ? `${activeGeneratedInput.recommendedEntryStep} · 共 ${activeGeneratedInput.generatedTaskCount} 步学习路线`
+        ? `${activeGeneratedInput.recommendedEntryStep} · 共 ${activeGeneratedInput.generatedTaskCount} 步`
         : "会直接安排成孩子现在能开始的 3-5 步学习路线",
     },
   ];
@@ -633,6 +638,17 @@ export function HomeScreen({ navigation, route }: Props) {
         steps={generationPromises}
         activeInput={activeGeneratedInput}
         sourceLabel={getInputSourceLabel(generatingSource ?? "camera")}
+      />
+
+      <HomeCaptureConfirmSheet
+        visible={Boolean(pendingSelection)}
+        previewInput={pendingSelection?.previewInput ?? null}
+        retakeLabel={pendingSelection?.pickerKind === "camera" ? "重拍这一页" : "重新选择"}
+        onRetake={() => {
+          void retakePendingSelection();
+        }}
+        onConfirm={confirmPendingSelection}
+        onClose={dismissPendingSelection}
       />
     </View>
   );

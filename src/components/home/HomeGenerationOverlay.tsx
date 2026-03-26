@@ -75,20 +75,20 @@ export function HomeGenerationOverlay({
         >
           <View style={styles.generationHandle} />
           <View style={styles.generationHeader}>
-            <Text style={styles.generationTitle}>正在识别这一页并安排学习路线</Text>
+            <Text style={styles.generationTitle}>正在把这一页变成可开始的学习</Text>
             <View style={styles.generationHeaderAside}>
               <MascotBuddy
                 state={currentStepIndex >= 2 ? "wow" : "teacher"}
                 size={68}
-                speech={currentStepIndex >= 2 ? "马上就能开始学啦" : "我来先排好路线"}
+                speech={currentStepIndex >= 2 ? "马上就能开始" : "我先带到第一步"}
               />
               <StatusChip label={activeStepLabel} tone="accent" />
             </View>
           </View>
           <Text style={styles.generationLead}>
             {activeInput
-              ? `${sourceLabel}已收到「${activeInput.title}」，系统正在识别内容并匹配合适的学习路线。`
-              : "这一页已经收到，系统正在完成内容识别和路线安排。"}
+              ? `${sourceLabel}已收到「${activeInput.title}」，系统正在看清这一页，并准备最合适的开始方式。`
+              : "这一页已经收到，系统正在准备最合适的开始方式。"}
           </Text>
 
           {activeInput ? (
@@ -160,14 +160,14 @@ export function HomeGenerationOverlay({
           })}
 
           <View style={styles.generationPreview}>
-            <Text style={styles.generationPreviewMeta}>这次先做</Text>
+            <Text style={styles.generationPreviewMeta}>马上先做</Text>
             <Text style={styles.generationPreviewTitle}>
               {activeInput ? activeInput.recommendedEntryStep : "先判断这页卡在哪里"}
             </Text>
             <Text style={styles.generationPreviewText}>
               {activeInput
                 ? `${activeInput.routeLabel} · ${activeInput.primaryChallenge}`
-                : "系统会先判断这页属于课文、阅读题、作文题还是字词页，再安排正确的第一步。"}
+                : "系统会先判断这页属于哪种常见学习场景，再安排正确的第一步。"}
             </Text>
           </View>
         </Animated.View>
