@@ -87,17 +87,20 @@ export function HomeCaptureSupportPanel({
           </Text>
         </View>
 
-        <View style={styles.routeGrid}>
+        <View style={styles.routeExamples}>
           {routeScenarios.map((item) => {
             const active = item.routeKind === activeRouteKind;
             return (
-              <View key={item.routeKind} style={[styles.routeTile, active && styles.routeTileActive]}>
-                <View style={styles.routeTileTop}>
-                  <Text style={[styles.routeTileTag, active && styles.routeTileTagActive]}>{item.tag}</Text>
-                  {active ? <StatusChip label="已匹配" tone="accent" /> : null}
+              <View key={item.routeKind} style={[styles.routeExamplePill, active && styles.routeExamplePillActive]}>
+                <View style={styles.routeExampleMain}>
+                  <Text style={[styles.routeExampleTag, active && styles.routeExampleTagActive]}>{item.tag}</Text>
+                  <Text style={styles.routeExampleBody}>{item.body}</Text>
                 </View>
-                <Text style={[styles.routeTileTitle, active && styles.routeTileTitleActive]}>{item.title}</Text>
-                <Text style={styles.routeTileBody}>{item.body}</Text>
+                {active ? (
+                  <StatusChip label="这次就是它" tone="accent" />
+                ) : (
+                  <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+                )}
               </View>
             );
           })}
@@ -197,47 +200,37 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 19,
   },
-  routeGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+  routeExamples: {
     gap: spacing.xs,
   },
-  routeTile: {
-    width: "48.5%",
-    minHeight: 92,
+  routeExamplePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.borderSoft,
     backgroundColor: "rgba(255,255,255,0.82)",
-    padding: spacing.sm,
-    gap: spacing.xxs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
   },
-  routeTileActive: {
+  routeExamplePillActive: {
     backgroundColor: colors.primary50,
     borderColor: colors.primary300,
   },
-  routeTileTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.xs,
+  routeExampleMain: {
+    flex: 1,
+    gap: 2,
   },
-  routeTileTag: {
+  routeExampleTag: {
     ...textStyles.meta,
     color: colors.primary600,
   },
-  routeTileTagActive: {
+  routeExampleTagActive: {
     color: colors.primary700,
   },
-  routeTileTitle: {
-    ...textStyles.body,
-    color: colors.textPrimary,
-    fontWeight: "600",
-  },
-  routeTileTitleActive: {
-    color: colors.primary700,
-  },
-  routeTileBody: {
+  routeExampleBody: {
     ...textStyles.caption,
     color: colors.textSecondary,
     lineHeight: 18,
