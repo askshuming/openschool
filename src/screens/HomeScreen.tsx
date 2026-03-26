@@ -19,12 +19,12 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trackEvent } from "../analytics/tracker";
 import { analyzeContentApi, getApiModeLabel } from "../api/service";
-import { AppCard } from "../components/AppCard";
 import { MascotBuddy } from "../components/MascotBuddy";
 import { StatusChip } from "../components/StatusChip";
 import { HomeCaptureSupportPanel } from "../components/home/HomeCaptureSupportPanel";
 import { HomeGenerationOverlay } from "../components/home/HomeGenerationOverlay";
 import { HomeJourneyCard } from "../components/home/HomeJourneyCard";
+import { HomeNoticeCard } from "../components/home/HomeNoticeCard";
 import { ScreenErrorState } from "../components/states/ScreenErrorState";
 import { ScreenLoadingState } from "../components/states/ScreenLoadingState";
 import { ScreenOfflineState } from "../components/states/ScreenOfflineState";
@@ -885,25 +885,7 @@ export function HomeScreen({ navigation, route }: Props) {
               },
             ]}
           >
-            <AppCard style={[styles.noticeCard, notice.tone === "success" && styles.noticeCardSuccess]}>
-              <View style={styles.noticeCardInner}>
-                <MascotBuddy
-                  state={notice.tone === "success" ? "wow" : "teacher"}
-                  size={84}
-                  speech={notice.tone === "success" ? "太棒了，又学会一点" : "这条消息我已经帮你同步"}
-                />
-                <View style={styles.noticeCopy}>
-                  <View style={styles.rowTop}>
-                    <Text style={textStyles.title}>{notice.title}</Text>
-                    <StatusChip
-                      label={notice.tone === "success" ? "完成" : "已同步"}
-                      tone={notice.tone === "success" ? "accent" : "primary"}
-                    />
-                  </View>
-                  <Text style={styles.cardText}>{notice.body}</Text>
-                </View>
-              </View>
-            </AppCard>
+            <HomeNoticeCard title={notice.title} body={notice.body} tone={notice.tone} />
           </Animated.View>
         ) : null}
 
@@ -998,12 +980,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingRight: 64,
   },
-  rowTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
   heroTitle: {
     ...textStyles.h1,
     color: colors.textPrimary,
@@ -1095,70 +1071,12 @@ const styles = StyleSheet.create({
   noticeWrap: {
     marginTop: -spacing.xs,
   },
-  noticeCard: {
-    gap: spacing.xs,
-    borderColor: colors.primary200,
-    backgroundColor: colors.primary50,
-  },
-  noticeCardSuccess: {
-    borderColor: colors.accent300,
-    backgroundColor: colors.accent100,
-  },
-  noticeCardInner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  noticeCopy: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  cardText: {
-    ...textStyles.body,
-    color: colors.textSecondary,
-  },
   homeFootnote: {
     ...textStyles.caption,
     color: colors.textTertiary,
     textAlign: "center",
     paddingHorizontal: spacing.sm,
     paddingBottom: spacing.sm,
-  },
-  recentInputPreview: {
-    width: 88,
-    height: 88,
-    borderRadius: radius.md,
-    backgroundColor: colors.primary100,
-  },
-  recentInputPreviewFallback: {
-    width: 88,
-    height: 88,
-    borderRadius: radius.md,
-    backgroundColor: colors.primary100,
-    borderWidth: 1,
-    borderColor: colors.primary200,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  recentInputContent: {
-    flex: 1,
-    gap: spacing.xxs,
-    justifyContent: "center",
-  },
-  recentInputSnippet: {
-    ...textStyles.caption,
-    color: colors.primary600,
-  },
-  recentInputHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: spacing.xs,
-  },
-  link: {
-    ...textStyles.meta,
-    color: colors.primary500,
-    fontWeight: "700",
   },
   meta: {
     ...textStyles.caption,
