@@ -17,8 +17,8 @@ interface LearningArrivalCardProps {
 
 export function LearningArrivalCard({ latestInput, childNickname }: LearningArrivalCardProps) {
   const title = childNickname
-    ? `${childNickname}，这一页已经准备好了`
-    : "这一页已经准备好了";
+    ? `${childNickname}，这一页已经接住了`
+    : "这一页已经接住了";
 
   return (
     <AppCard style={styles.card}>
@@ -27,7 +27,7 @@ export function LearningArrivalCard({ latestInput, childNickname }: LearningArri
           <Text style={styles.eyebrow}>刚拍下的这一页</Text>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.body}>
-            这是{getContentTypeLabel(latestInput.contentType)}，系统已经判断好这次先从哪里开始。你不用自己再判断题型或学习顺序。
+            这是{getContentTypeLabel(latestInput.contentType)}。不用再判断题型，直接从第一步开始就行。
           </Text>
         </View>
         <MascotBuddy state="teacher" size={72} speech="我先带第一步" />

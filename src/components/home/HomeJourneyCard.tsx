@@ -50,18 +50,18 @@ export function HomeJourneyCard({
   return (
     <AppCard style={styles.card}>
       <View style={styles.rowTop}>
-        <Text style={textStyles.title}>今天的学习主线</Text>
+        <Text style={textStyles.title}>这页现在走到哪了</Text>
         <StatusChip label={statusLabel} tone={statusTone} />
       </View>
       <View style={styles.focusCard}>
-        <Text style={styles.focusLabel}>现在先做</Text>
+        <Text style={styles.focusLabel}>下一步</Text>
         <Text style={styles.focusTitle}>{headline}</Text>
         <Text style={styles.focusBody}>{body}</Text>
       </View>
 
       <View style={styles.track}>
         <View style={[styles.step, inputDone && styles.stepDone]}>
-          <Text style={styles.stepTitle}>输入内容</Text>
+          <Text style={styles.stepTitle}>拍到这页</Text>
           <Text style={styles.stepMeta} numberOfLines={2}>
             {inputMeta}
           </Text>
@@ -77,7 +77,7 @@ export function HomeJourneyCard({
         </View>
 
         <View style={[styles.step, reviewDone && styles.stepDone]}>
-          <Text style={styles.stepTitle}>温和复习</Text>
+          <Text style={styles.stepTitle}>收一下</Text>
           <Text style={styles.stepMeta} numberOfLines={2}>
             {reviewMeta}
           </Text>
