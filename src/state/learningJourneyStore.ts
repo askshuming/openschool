@@ -64,9 +64,20 @@ export const useLearningJourneyStore = create<LearningJourneyStoreState>()(
       recordSessionStarted: (session) =>
         set((state) => {
           if (state.currentSession?.sessionId === session.sessionId) {
+            const current = state.currentSession;
+            const unchanged =
+              current.lessonId === session.lessonId &&
+              current.lessonTitle === session.lessonTitle &&
+              current.contentInputId === session.contentInputId &&
+              current.contentTitle === session.contentTitle &&
+              current.source === session.source &&
+              current.totalSteps === session.totalSteps;
+            if (unchanged) {
+              return state;
+            }
             return {
               currentSession: {
-                ...state.currentSession,
+                ...current,
                 ...session,
               },
             };

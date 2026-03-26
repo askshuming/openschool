@@ -1,62 +1,25 @@
 import { Ionicons } from "@expo/vector-icons";
 import { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import { LinearGradient } from "expo-linear-gradient";
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Animated,
-  Platform,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { useMemo } from "react";
+import { Alert, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { trackEvent } from "../analytics/tracker";
-import { analyzeContentApi } from "../api/service";
 import { MascotBuddy } from "../components/MascotBuddy";
-import { StatusChip } from "../components/StatusChip";
-import { HomeCaptureConfirmSheet } from "../components/home/HomeCaptureConfirmSheet";
-import { HomeCaptureSupportPanel } from "../components/home/HomeCaptureSupportPanel";
 import { HomeGenerationOverlay } from "../components/home/HomeGenerationOverlay";
-import { HomeJourneyCard } from "../components/home/HomeJourneyCard";
-import { HomeNoticeCard } from "../components/home/HomeNoticeCard";
 import { ScreenErrorState } from "../components/states/ScreenErrorState";
 import { ScreenLoadingState } from "../components/states/ScreenLoadingState";
 import { ScreenOfflineState } from "../components/states/ScreenOfflineState";
-import { colors, motion, radius, spacing } from "../design/tokens";
+import { colors, radius, spacing } from "../design/tokens";
 import { layoutStyles, textStyles } from "../design/theme";
 import { useCatalog } from "../hooks/useCatalog";
-import { useParentSettings } from "../hooks/useParentSettings";
-import { useProgressSummary } from "../hooks/useProgressSummary";
 import { useHomeGenerationFlow } from "../hooks/useHomeGenerationFlow";
-import { useReviewQueue } from "../hooks/useReviewQueue";
 import { AppTabParamList } from "../navigation/types";
-import { buildHomeJourneyPresentation } from "../domain/learningJourneyPresentation";
 import { useAppState } from "../state/AppState";
-import {
-  getContentTypeLabel,
-  getInputSourceLabel,
-  getRelativeInputTimeLabel,
-  useContentInputStore,
-} from "../state/contentInputStore";
+import { useContentInputStore } from "../state/contentInputStore";
 import { useLearningJourneyStore } from "../state/learningJourneyStore";
-import { useSessionStore } from "../state/sessionStore";
-import { formatCnMonthDayWeek } from "../utils/date";
 import { isOfflineError, toUserErrorMessage } from "../utils/errorMessage";
-import { triggerFeedback } from "../utils/feedback";
 
 type Props = BottomTabScreenProps<AppTabParamList, "Home">;
-
-type HomeNotice = {
-  id: string;
-  title: string;
-  body: string;
-  tone: "success" | "primary";
-  nextStep?: string;
-};
 
 const gradeLabelMap: Record<string, string> = {
   G1: "一年级",
@@ -66,14 +29,6 @@ const gradeLabelMap: Record<string, string> = {
   G5: "五年级",
   G6: "六年级",
 };
-
-const readingLevelLabelMap = {
-  normal: "基础较稳定",
-  struggling: "需要适度引导",
-  very_struggling: "需要更多引导",
-} as const;
-
-const GENERATED_DYNAMIC_LESSON_ID = "generated_dynamic";
 
 function pickRecommendedLesson(
   lessons: Array<{ id: string; title: string }>,
@@ -89,289 +44,58 @@ function pickRecommendedLesson(
   return lessons.find((lesson) => lesson.id.toLowerCase().startsWith(`${prefix}_`)) ?? lessons[0];
 }
 
-export function HomeScreen({ navigation, route }: Props) {
+export function HomeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { height: viewportHeight } = useWindowDimensions();
-  const floatAnim = useRef(new Animated.Value(0)).current;
-  const noticeAnim = useRef(new Animated.Value(0)).current;
-  const handledCelebrationRef = useRef<string | null>(null);
-  const handledReviewRef = useRef<string | null>(null);
-
-  const { childProfile, childId, parentId } = useAppState();
+  const { childProfile } = useAppState();
   const recentInputs = useContentInputStore((s) => s.recentInputs);
   const addInput = useContentInputStore((s) => s.addInput);
-  const journeyInput = useLearningJourneyStore((s) => s.currentInput);
-  const journeySession = useLearningJourneyStore((s) => s.currentSession);
-  const lastCompletedSession = useLearningJourneyStore((s) => s.lastCompletedSession);
-  const lastCompletedReview = useLearningJourneyStore((s) => s.lastCompletedReview);
   const recordGeneratedInput = useLearningJourneyStore((s) => s.recordGeneratedInput);
-  const [notice, setNotice] = useState<HomeNotice | null>(null);
-
-  const childKey = childId ?? childProfile?.nickname ?? "demo";
-  const progressQuery = useProgressSummary(childKey, childId ?? undefined);
-  const reviewQueueQuery = useReviewQueue(childKey, childId ?? undefined);
-  const settingsQuery = useParentSettings(parentId ?? undefined);
   const catalogQuery = useCatalog();
-
-  const sessionId = useSessionStore((s) => s.sessionId);
-  const sessionLessonId = useSessionStore((s) => s.lessonId);
-  const sessionHydrated = useSessionStore((s) => s.hasHydrated);
-  const step = useSessionStore((s) => s.step);
-  const totalSteps = useSessionStore((s) => s.totalSteps);
-
-  const hasInProgress = sessionHydrated && Boolean(sessionId) && step > 0 && step < totalSteps;
 
   const lessons = catalogQuery.data?.lessons ?? [];
   const recommendedLesson = useMemo(
     () => pickRecommendedLesson(lessons, childProfile?.grade),
     [childProfile?.grade, lessons],
   );
-  const inProgressLesson = lessons.find((lesson) => lesson.id === sessionLessonId) ?? null;
-  const launchLesson = recommendedLesson ?? inProgressLesson;
 
-  const pendingReviewCount = (reviewQueueQuery.data?.items ?? []).filter(
-    (item) => item.status === "pending",
-  ).length;
-  const firstPendingReview = (reviewQueueQuery.data?.items ?? []).find((item) => item.status === "pending") ?? null;
-  const completedLessons = progressQuery.data?.completedLessons ?? 0;
-  const streakDays = Math.max(1, completedLessons + (hasInProgress ? 1 : 0));
-  const todayLabel = formatCnMonthDayWeek();
-  const reminderText = settingsQuery.data?.reminderTime ?? "19:30";
   const childGradeLabel = childProfile?.grade ? gradeLabelMap[childProfile.grade] ?? childProfile.grade : "当前年级";
-  const focusLabel = childProfile?.interests?.[0] ?? "阅读";
-  const readingLevelLabel = childProfile?.readingLevel
-    ? readingLevelLabelMap[childProfile.readingLevel]
-    : "系统会自动调节";
-  const latestInput = recentInputs[0] ?? null;
-  const resumableJourneyInput = journeyInput ?? latestInput;
-  const homeJourney = buildHomeJourneyPresentation({
-    resumableInput: resumableJourneyInput,
-    currentSession: journeySession,
-    lastCompletedSession,
-    lastCompletedReview,
-    hasInProgress,
-    pendingReviewCount,
-    sessionStep: step,
-    sessionTotalSteps: totalSteps,
-    defaultLessonTitle: inProgressLesson?.title,
-    childDisplayName: childProfile?.nickname ?? "孩子",
-  });
-  const homePhase = homeJourney.primaryAction.kind;
-  const journeyLessonTitle =
-    journeySession?.lessonTitle ??
-    lastCompletedSession?.lessonTitle ??
-    resumableJourneyInput?.title ??
-    launchLesson?.title ??
-    "这份内容";
-  const routeFocusStep = resumableJourneyInput?.recommendedEntryStep ?? "先拍不会的这一页";
-  const heroTitle =
-    homePhase === "resume_session"
-      ? "这一页，继续往下学"
-      : homePhase === "open_review_focus"
-        ? "这一页，先稳稳收住"
-        : resumableJourneyInput
-          ? "这一页，先从第一步开始"
-          : "不会的这一页，拍一下";
-  const heroSubtitle =
-    homePhase === "resume_session"
-      ? `当前在学「${journeyLessonTitle}」第 ${step}/${Math.max(totalSteps, 1)} 步。`
-      : homePhase === "open_review_focus"
-        ? `刚学完「${journeyLessonTitle}」，现在先收眼前这一题。`
-        : resumableJourneyInput
-          ? `刚拍的这一页，先做「${routeFocusStep}」。`
-          : "课文页、阅读题、作文题、生字词，都能直接拍下来开始。";
-  const heroMascotSpeech =
-    homePhase === "resume_session"
-      ? "从这一步接着来"
-      : homePhase === "open_review_focus"
-        ? "先稳稳复习一题"
-        : resumableJourneyInput
-          ? "我先带你做第一步"
-          : "不会的那页拍给我";
-  const capturePrimarySubtitle = resumableJourneyInput
-    ? "再拍新的一页，我继续接"
-    : "拍一页，马上开始";
-  const captureEntryHint = resumableJourneyInput
-    ? "拍照始终是主入口，刚拍的这一页会自动续上"
-    : "拍照学习是主入口";
+  const heroMinHeight = Math.max(560, Math.min(760, viewportHeight - insets.top - insets.bottom - 24));
 
-  const refreshing =
-    progressQuery.isRefetching ||
-    catalogQuery.isRefetching ||
-    reviewQueueQuery.isRefetching ||
-    settingsQuery.isRefetching;
-
-  const heroMinHeight = Math.max(540, Math.min(680, viewportHeight - insets.top - 108));
-
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatAnim, {
-          toValue: 1,
-          duration: motion.cardSwitch,
-          useNativeDriver: true,
-        }),
-        Animated.timing(floatAnim, {
-          toValue: 0,
-          duration: motion.cardSwitch,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [floatAnim]);
-
-  const {
-    generationOverlayAnim,
-    generatingSource,
-    generationStepIndex,
-    activeGeneratedInput,
-    pendingSelection,
-    handleCameraStart,
-    openUploadChooser,
-    dismissPendingSelection,
-    confirmPendingSelection,
-    retakePendingSelection,
-  } = useHomeGenerationFlow({
-    launchLessonId: launchLesson?.id ?? null,
-    latestInput,
-    recentInputCount: recentInputs.length,
-    focusLabel,
-    gradeLabel: childGradeLabel,
-    readingLevel: childProfile?.readingLevel,
-    addInput,
-    recordGeneratedInput,
-    onNotice: setNotice,
-    onNavigateToSession: ({ lessonId, generationSource, contentInputId }) => {
-      navigation.navigate("Session", {
-        forceNew: true,
-        lessonId,
-        generationSource,
-        contentInputId,
-      });
-    },
-  });
-
-  const generationPromises = [
-    {
-      title: "看清这一页",
-      detail: activeGeneratedInput
-        ? `${getContentTypeLabel(activeGeneratedInput.contentType)} · ${activeGeneratedInput.title}`
-        : "先把这一页看清楚",
-    },
-    {
-      title: "找到先学的点",
-      detail: activeGeneratedInput
-        ? `${activeGeneratedInput.routeLabel} · ${activeGeneratedInput.primaryChallenge}`
-        : `${childGradeLabel} · ${focusLabel}优先 · ${readingLevelLabel}`,
-    },
-    {
-      title: "直接开始",
-      detail: activeGeneratedInput
-        ? `${activeGeneratedInput.recommendedEntryStep} · 共 ${activeGeneratedInput.generatedTaskCount} 步`
-        : "会直接安排成孩子现在能开始的 3-5 步学习路线",
-    },
-  ];
-
-  useEffect(() => {
-    const celebrationAt = route.params?.celebrationAt;
-    if (!celebrationAt || handledCelebrationRef.current === celebrationAt) {
-      return;
-    }
-    handledCelebrationRef.current = celebrationAt;
-    setNotice({
-      id: celebrationAt,
-      title: "学习已完成",
-      body: route.params?.celebrationLessonTitle
-        ? `「${route.params.celebrationLessonTitle}」这一页已经学完了。`
-        : "这一页已经学完了。",
-      tone: "success",
-      nextStep: "先收 1 题温和复习；如果今天还要学新的，继续拍下一页",
+  const { generationOverlayAnim, generatingSource, activeGeneratedInput, handleCameraStart } =
+    useHomeGenerationFlow({
+      launchLessonId: recommendedLesson?.id ?? null,
+      recentInputCount: recentInputs.length,
+      focusLabel: childProfile?.interests?.[0] ?? "阅读",
+      gradeLabel: childGradeLabel,
+      readingLevel: childProfile?.readingLevel,
+      addInput,
+      recordGeneratedInput,
+      onNotice: (nextNotice) => {
+        Alert.alert(nextNotice.title, nextNotice.body);
+      },
+      onNavigateToSession: ({ lessonId, generationSource, contentInputId }) => {
+        navigation.navigate("Session", {
+          forceNew: true,
+          lessonId,
+          generationSource,
+          contentInputId,
+        });
+      },
     });
-    triggerFeedback("success");
-    noticeAnim.setValue(0);
-    Animated.timing(noticeAnim, {
-      toValue: 1,
-      duration: motion.normal,
-      useNativeDriver: true,
-    }).start();
-    navigation.setParams({
-      celebrationAt: undefined,
-      celebrationLessonTitle: undefined,
-    });
-  }, [navigation, noticeAnim, route.params?.celebrationAt, route.params?.celebrationLessonTitle]);
 
-  useEffect(() => {
-    const reviewAt = route.params?.reviewCompletedAt;
-    if (!reviewAt || handledReviewRef.current === reviewAt) {
-      return;
-    }
-    handledReviewRef.current = reviewAt;
-    const count = Math.max(1, route.params?.reviewCompletedCount ?? 1);
-    const remainingPendingCount = Math.max(0, route.params?.reviewRemainingPendingCount ?? 0);
-    setNotice({
-      id: reviewAt,
-      title: "复习进度已同步",
-      body:
-        route.params?.reviewCompletedMode === "batch"
-          ? remainingPendingCount > 0
-            ? `这轮温和复习已经完成 ${count} 题，今天还剩 ${remainingPendingCount} 题。`
-            : `这轮温和复习已经完成 ${count} 题。`
-          : remainingPendingCount > 0
-            ? `眼前这题已经收住了，今天还剩 ${remainingPendingCount} 题。`
-            : `眼前这题已经收住了，共完成 ${count} 题。`,
-      tone: "primary",
-      nextStep:
-        remainingPendingCount > 0
-          ? `如果今天还想继续巩固，回来再收剩下 ${remainingPendingCount} 题；如果要学新的，就回首页拍下一页`
-          : "今天这轮复习已经收好了，可以回首页继续拍新的不会内容",
-    });
-    triggerFeedback("success");
-    noticeAnim.setValue(0);
-    Animated.timing(noticeAnim, {
-      toValue: 1,
-      duration: motion.normal,
-      useNativeDriver: true,
-    }).start();
-    navigation.setParams({
-      reviewCompletedAt: undefined,
-      reviewCompletedCount: undefined,
-      reviewCompletedMode: undefined,
-      reviewRemainingPendingCount: undefined,
-    });
-  }, [
-    navigation,
-    noticeAnim,
-    route.params?.reviewCompletedAt,
-    route.params?.reviewCompletedCount,
-    route.params?.reviewCompletedMode,
-    route.params?.reviewRemainingPendingCount,
-  ]);
-
-  useEffect(() => {
-    if (!notice) {
-      return;
-    }
-    const timer = setTimeout(() => setNotice(null), 5000);
-    return () => clearTimeout(timer);
-  }, [notice]);
-
-  if (progressQuery.isLoading || catalogQuery.isLoading) {
+  if (catalogQuery.isLoading) {
     return <ScreenLoadingState text="正在加载首页..." />;
   }
 
-  if (progressQuery.isError || catalogQuery.isError) {
-    const error = progressQuery.error ?? catalogQuery.error;
-    if (isOfflineError(error)) {
+  if (catalogQuery.isError) {
+    if (isOfflineError(catalogQuery.error)) {
       return (
         <ScreenOfflineState
           title="首页离线中"
           message="网络恢复后可继续学习。"
           onRetry={() => {
-            progressQuery.refetch();
             catalogQuery.refetch();
-            reviewQueueQuery.refetch();
           }}
         />
       );
@@ -379,273 +103,65 @@ export function HomeScreen({ navigation, route }: Props) {
     return (
       <ScreenErrorState
         title="首页加载失败"
-        message={toUserErrorMessage(error, "请稍后重试")}
+        message={toUserErrorMessage(catalogQuery.error, "请稍后重试")}
         onRetry={() => {
-          progressQuery.refetch();
           catalogQuery.refetch();
-          reviewQueueQuery.refetch();
         }}
       />
     );
   }
 
-  function resumeSession() {
-    navigation.navigate("Session", {
-      forceNew: false,
-      lessonId: sessionLessonId ?? launchLesson?.id,
-      generationSource: undefined,
-    });
-  }
-
-  function startJourneyLearning() {
-    if (!resumableJourneyInput) {
-      void handleCameraStart();
-      return;
-    }
-
-    navigation.navigate("Session", {
-      forceNew: true,
-      lessonId: journeySession?.lessonId ?? resumableJourneyInput.lessonId ?? GENERATED_DYNAMIC_LESSON_ID,
-      generationSource: resumableJourneyInput.source,
-      contentInputId: resumableJourneyInput.id,
-    });
-  }
-
-  function runHomeJourneyAction(kind: typeof homeJourney.primaryAction.kind | typeof homeJourney.secondaryAction.kind) {
-    switch (kind) {
-      case "resume_session":
-        resumeSession();
-        break;
-      case "open_review_focus":
-        navigation.navigate("Review", firstPendingReview ? { focusReviewId: firstPendingReview.id } : undefined);
-        break;
-      case "start_content":
-        startJourneyLearning();
-        break;
-      case "capture":
-        void handleCameraStart();
-        break;
-      case "open_review":
-        navigation.navigate("Review");
-        break;
-      case "open_parent":
-        navigation.navigate("Parent");
-        break;
-      default:
-        break;
-    }
-  }
-
-  const journeyPrimaryAction = {
-    label: homeJourney.primaryAction.label,
-    onPress: () => runHomeJourneyAction(homeJourney.primaryAction.kind),
-  };
-  const secondaryAction = {
-    title: homeJourney.secondaryAction.title,
-    icon: homeJourney.secondaryAction.icon,
-    onPress: () => runHomeJourneyAction(homeJourney.secondaryAction.kind),
-  };
-
   return (
     <View style={layoutStyles.screen}>
-      <ScrollView
-        style={layoutStyles.screen}
-        contentContainerStyle={[
+      <View
+        style={[
           styles.content,
           {
-            paddingTop: spacing.sm + insets.top,
-            paddingBottom: spacing.xxl + Math.max(insets.bottom, spacing.md),
+            paddingTop: insets.top + spacing.sm,
+            paddingBottom: Math.max(insets.bottom, spacing.lg),
           },
         ]}
-        contentInsetAdjustmentBehavior="never"
-        scrollIndicatorInsets={{
-          top: insets.top,
-          bottom: Math.max(insets.bottom, spacing.md),
-        }}
-        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
-        alwaysBounceVertical
-        keyboardShouldPersistTaps="handled"
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => {
-              progressQuery.refetch();
-              catalogQuery.refetch();
-              reviewQueueQuery.refetch();
-              if (parentId) {
-                settingsQuery.refetch();
-              }
-            }}
-            tintColor={colors.primary500}
-            colors={[colors.primary500]}
-          />
-        }
       >
         <LinearGradient
-          colors={[colors.primary100, colors.primary50]}
+          colors={[colors.primary100, "#F4FBF7"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[styles.hero, { minHeight: heroMinHeight }]}
         >
           <View style={styles.heroGlowOne} />
           <View style={styles.heroGlowTwo} />
-          <Animated.View
-            style={[
-              styles.mascotBubble,
-              {
-                transform: [
-                  {
-                    translateY: floatAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [-2, 5],
-                    }),
-                  },
-                ],
-                opacity: floatAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.88, 1],
-                }),
-              },
-            ]}
-          >
-            <MascotBuddy state="teacher" size={62} speech={heroMascotSpeech} />
-          </Animated.View>
 
-          <View style={styles.heroTopRow}>
-            <StatusChip label={`连续学习 ${streakDays} 天`} tone="accent" />
-            <Text style={styles.meta}>{todayLabel}</Text>
+          <View style={styles.mascotWrap}>
+            <MascotBuddy state="teacher" size={74} />
           </View>
-
-          <Text style={styles.heroTitle}>{heroTitle}</Text>
-          <Text style={styles.heroSubtitle} numberOfLines={2}>
-            {childProfile?.nickname ? `${childProfile.nickname}，${heroSubtitle}` : heroSubtitle}
-          </Text>
 
           <View style={styles.heroMain}>
-            <View style={styles.capturePrimaryStage}>
-              <Animated.View
-                style={[
-                  styles.capturePrimaryWrap,
-                  {
-                    transform: [
-                      {
-                        translateY: floatAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [-3, 6],
-                        }),
-                      },
-                    ],
-                  },
-                ]}
-              >
-                <Text style={styles.captureCenterHint}>主入口</Text>
-                <Pressable
-                  hitSlop={8}
-                  onPress={handleCameraStart}
-                  style={({ pressed }) => [styles.capturePrimaryAction, pressed && styles.heroActionPressed]}
-                >
-                  <LinearGradient
-                    colors={[colors.primary500, colors.primary600]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={StyleSheet.absoluteFillObject}
-                  />
-                  <View style={styles.capturePrimaryRing}>
-                    <View style={styles.capturePrimaryCore}>
-                      <Ionicons name="camera" size={30} color={colors.primary600} />
-                    </View>
-                  </View>
-                  <Text style={styles.capturePrimaryTitle}>拍一下</Text>
-                  <Text style={styles.capturePrimarySubtitle}>{capturePrimarySubtitle}</Text>
-                </Pressable>
-                <Text style={styles.captureCenterArrow}>{captureEntryHint}</Text>
-              </Animated.View>
-            </View>
+            <Text style={styles.heroLabel}>拍照学习</Text>
 
-            <HomeCaptureSupportPanel
-              latestInput={latestInput}
-              childGradeLabel={childGradeLabel}
-              focusLabel={focusLabel}
-              onUploadPress={openUploadChooser}
-              secondaryAction={secondaryAction}
-            />
+            <Pressable
+              hitSlop={8}
+              onPress={handleCameraStart}
+              style={({ pressed }) => [styles.capturePrimaryAction, pressed && styles.heroActionPressed]}
+            >
+              <LinearGradient
+                colors={[colors.primary500, colors.primary600]}
+                start={{ x: 0.1, y: 0 }}
+                end={{ x: 0.9, y: 1 }}
+                style={StyleSheet.absoluteFillObject}
+              />
+              <View style={styles.capturePrimaryCore}>
+                <Ionicons name="camera" size={34} color={colors.primary600} />
+              </View>
+              <Text style={styles.capturePrimaryTitle}>拍一下</Text>
+            </Pressable>
           </View>
         </LinearGradient>
-
-        {notice ? (
-          <Animated.View
-            style={[
-              styles.noticeWrap,
-              {
-                opacity: noticeAnim,
-                transform: [
-                  {
-                    translateY: noticeAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [8, 0],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            <HomeNoticeCard
-              title={notice.title}
-              body={notice.body}
-              tone={notice.tone}
-              nextStep={notice.nextStep}
-            />
-          </Animated.View>
-        ) : null}
-
-        <HomeJourneyCard
-          statusLabel={homeJourney.statusLabel}
-          statusTone={homeJourney.statusTone}
-          headline={homeJourney.headline}
-          body={homeJourney.body}
-          inputDone={homeJourney.inputDone}
-          inputMeta={homeJourney.inputMeta}
-          inputStatusLabel={homeJourney.inputStatusLabel}
-          learningDone={homeJourney.learningDone}
-          learningDisplay={homeJourney.learningDisplay}
-          learningStatusLabel={homeJourney.learningStatusLabel}
-          learningTone={hasInProgress ? "accent" : "primary"}
-          reviewDone={homeJourney.reviewDone}
-          reviewMeta={homeJourney.reviewMeta}
-          reviewStatusLabel={homeJourney.reviewStatusLabel}
-          reviewTone={pendingReviewCount > 0 ? "accent" : "primary"}
-          footnote={
-            resumableJourneyInput
-              ? `最近更新：${getRelativeInputTimeLabel(resumableJourneyInput.createdAt)}`
-              : "拍到这页后主线会自动出现"
-          }
-          actionLabel={journeyPrimaryAction.label}
-          onAction={journeyPrimaryAction.onPress}
-        />
-
-        <Text style={styles.homeFootnote}>
-          今天已学 {completedLessons} 次，晚上 {reminderText} 提醒。
-        </Text>
-      </ScrollView>
+      </View>
 
       <HomeGenerationOverlay
         visible={Boolean(generatingSource)}
         animationValue={generationOverlayAnim}
-        currentStepIndex={generationStepIndex}
-        steps={generationPromises}
         activeInput={activeGeneratedInput}
-        sourceLabel={getInputSourceLabel(generatingSource ?? "camera")}
-      />
-
-      <HomeCaptureConfirmSheet
-        visible={Boolean(pendingSelection)}
-        previewInput={pendingSelection?.previewInput ?? null}
-        retakeLabel={pendingSelection?.pickerKind === "camera" ? "重拍这一页" : "重新选择"}
-        onRetake={() => {
-          void retakePendingSelection();
-        }}
-        onConfirm={confirmPendingSelection}
-        onClose={dismissPendingSelection}
       />
     </View>
   );
@@ -653,152 +169,92 @@ export function HomeScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   content: {
-    padding: spacing.pageHorizontal,
-    gap: spacing.sm,
+    flex: 1,
+    paddingHorizontal: spacing.pageHorizontal,
   },
   hero: {
+    flex: 1,
     borderRadius: radius.xl,
-    padding: spacing.lg,
-    gap: spacing.xs,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xl,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: colors.borderSoft,
+    backgroundColor: colors.bgCard,
   },
   heroGlowOne: {
     position: "absolute",
-    width: 180,
-    height: 180,
+    width: 220,
+    height: 220,
     borderRadius: 999,
     backgroundColor: colors.primary200,
-    top: -70,
-    left: -50,
-    opacity: 0.9,
+    top: -82,
+    left: -66,
+    opacity: 0.7,
   },
   heroGlowTwo: {
     position: "absolute",
-    width: 160,
-    height: 160,
+    width: 196,
+    height: 196,
     borderRadius: 999,
     backgroundColor: colors.accent100,
-    right: -36,
-    bottom: -50,
-    opacity: 0.95,
+    right: -72,
+    bottom: -76,
+    opacity: 0.42,
   },
-  mascotBubble: {
+  mascotWrap: {
     position: "absolute",
-    right: -4,
-    top: 8,
-    width: 76,
-    height: 82,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heroTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-    paddingRight: 64,
-  },
-  heroTitle: {
-    ...textStyles.h1,
-    color: colors.textPrimary,
-    fontSize: 35,
-    lineHeight: 42,
-  },
-  heroSubtitle: {
-    ...textStyles.caption,
-    color: colors.textSecondary,
-    lineHeight: 21,
+    top: 28,
+    right: 4,
   },
   heroMain: {
     flex: 1,
-    justifyContent: "flex-start",
-    gap: spacing.sm,
-  },
-  capturePrimaryStage: {
     alignItems: "center",
     justifyContent: "center",
-    marginTop: spacing.xs,
+    gap: spacing.xl,
   },
-  capturePrimaryWrap: {
-    width: "100%",
-    alignItems: "center",
-    gap: 6,
-  },
-  captureCenterHint: {
-    ...textStyles.meta,
-    color: colors.primary600,
-    fontSize: 13,
-    letterSpacing: 0.2,
-  },
-  captureCenterArrow: {
-    ...textStyles.caption,
-    color: colors.textSecondary,
-    textAlign: "center",
+  heroLabel: {
+    ...textStyles.title,
+    color: colors.textPrimary,
+    fontSize: 31,
+    lineHeight: 37,
   },
   capturePrimaryAction: {
-    width: "82%",
-    maxWidth: 312,
-    minHeight: 286,
-    borderRadius: 40,
+    width: "86%",
+    maxWidth: 324,
+    minHeight: 352,
+    borderRadius: 42,
     overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xl,
-    gap: spacing.sm,
+    gap: spacing.lg,
     shadowColor: colors.primary600,
-    shadowOpacity: 0.22,
-    shadowOffset: { width: 0, height: 18 },
-    shadowRadius: 26,
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 20 },
+    shadowRadius: 28,
     elevation: 8,
   },
-  capturePrimaryRing: {
-    width: 116,
-    height: 116,
-    borderRadius: 58,
-    backgroundColor: "rgba(255,255,255,0.16)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
   capturePrimaryCore: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: colors.primary700,
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 16,
+    elevation: 2,
   },
   capturePrimaryTitle: {
-    ...textStyles.h2,
+    ...textStyles.h1,
     color: "#FFFFFF",
-    fontSize: 32,
-  },
-  capturePrimarySubtitle: {
-    ...textStyles.caption,
-    color: "rgba(255,255,255,0.84)",
-    textAlign: "center",
-    lineHeight: 20,
+    fontSize: 42,
+    lineHeight: 48,
   },
   heroActionPressed: {
     transform: [{ scale: 0.988 }],
-    opacity: 0.92,
-  },
-  noticeWrap: {
-    marginTop: -spacing.xs,
-  },
-  homeFootnote: {
-    ...textStyles.caption,
-    color: colors.textTertiary,
-    textAlign: "center",
-    paddingHorizontal: spacing.sm,
-    paddingBottom: spacing.sm,
-  },
-  meta: {
-    ...textStyles.caption,
-    color: colors.textTertiary,
+    opacity: 0.94,
   },
 });

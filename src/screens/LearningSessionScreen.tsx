@@ -253,7 +253,7 @@ export function LearningSessionScreen({ navigation, route }: Props) {
     recitationMutation.reset();
     recitationFeedbackKeyRef.current = null;
     quizFeedbackKeyRef.current = null;
-  }, [answerMutation.reset, card?.id, recitationMutation.reset, resetRecitation, setAnswerResult, setSelectedOption]);
+  }, [card?.id]);
 
   useEffect(() => {
     setShowFlowDetails(false);

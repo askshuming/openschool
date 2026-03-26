@@ -58,10 +58,13 @@ export const useSessionStore = create<SessionStoreState>()(
             answerResult: null,
           };
         }),
-      setCurrentCardTitle: (currentCardTitle) => set({ currentCardTitle }),
-      setStep: (step) => set({ step }),
-      setSelectedOption: (selectedOption) => set({ selectedOption }),
-      setAnswerResult: (answerResult) => set({ answerResult }),
+      setCurrentCardTitle: (currentCardTitle) =>
+        set((state) => (state.currentCardTitle === currentCardTitle ? state : { currentCardTitle })),
+      setStep: (step) => set((state) => (state.step === step ? state : { step })),
+      setSelectedOption: (selectedOption) =>
+        set((state) => (state.selectedOption === selectedOption ? state : { selectedOption })),
+      setAnswerResult: (answerResult) =>
+        set((state) => (state.answerResult === answerResult ? state : { answerResult })),
       nextStep: () => {
         const current = get().step;
         const totalSteps = get().totalSteps;
