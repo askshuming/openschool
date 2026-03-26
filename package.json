@@ -1,0 +1,46 @@
+{
+  "name": "yuwen-banxue-app",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit",
+    "mock:server": "node server/fastify-server.mjs",
+    "mock:server:legacy": "node server/mock-server.mjs",
+    "test:api": "node --test server/tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "~5.0.5",
+    "@expo/vector-icons": "^14.1.0",
+    "@fastify/cors": "^10.1.0",
+    "@react-native-async-storage/async-storage": "^2.1.1",
+    "@react-navigation/bottom-tabs": "^7.2.0",
+    "@react-navigation/native": "^7.0.15",
+    "@react-navigation/native-stack": "^7.1.6",
+    "@tanstack/react-query": "^5.76.0",
+    "expo": "~53.0.0",
+    "expo-asset": "^55.0.10",
+    "expo-document-picker": "~13.1.6",
+    "expo-image-picker": "~16.1.4",
+    "expo-linear-gradient": "~14.1.5",
+    "expo-speech": "^55.0.9",
+    "expo-speech-recognition": "^3.1.2",
+    "expo-status-bar": "~2.2.3",
+    "fastify": "^5.2.2",
+    "react": "19.0.0",
+    "react-dom": "^19.0.0",
+    "react-native": "0.79.2",
+    "react-native-safe-area-context": "5.4.0",
+    "react-native-screens": "~4.11.1",
+    "react-native-web": "^0.20.0",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@types/react": "~19.0.12",
+    "typescript": "~5.8.3"
+  }
+}

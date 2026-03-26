@@ -1,0 +1,1023 @@
+openapi: 3.1.0
+info:
+  title: Yuwen Banxue Mock API
+  version: 1.0.0
+  description: Minimal API contract for Yuwen Banxue App 1.0
+servers:
+  - url: http://127.0.0.1:3001
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  requestId:
+                    type: string
+                  ok:
+                    type: boolean
+                  ts:
+                    type: string
+  /parent/signup:
+    post:
+      summary: Parent signup/login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ParentSignupRequest"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ParentSignupResponse"
+        "400":
+          description: Request validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /consent/guardian:
+    post:
+      summary: Submit guardian consent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GuardianConsentRequest"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GuardianConsentResponse"
+        "400":
+          description: Request validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Parent not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Consent required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /consent/record:
+    get:
+      summary: Get latest guardian consent record by parent
+      parameters:
+        - in: query
+          name: parentId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GuardianConsentRecordResponse"
+        "404":
+          description: Parent or consent record not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /consent/revoke:
+    post:
+      summary: Revoke latest guardian consent by parent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GuardianConsentRevokeRequest"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GuardianConsentRevokeResponse"
+        "404":
+          description: Parent or consent record not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /child-profile:
+    post:
+      summary: Create or update child profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChildProfileUpsertRequest"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChildProfileUpsertResponse"
+        "400":
+          description: Request validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Parent not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Consent required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /child-profile/delete:
+    post:
+      summary: Delete child profile and related learning data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChildProfileDeleteRequest"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChildProfileDeleteResponse"
+        "400":
+          description: Request validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Parent or child not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Parent-child mismatch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /catalog:
+    get:
+      summary: Get lesson catalog
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  requestId:
+                    type: string
+                  grades:
+                    type: array
+                    items:
+                      type: string
+                  textbookVersions:
+                    type: array
+                    items:
+                      type: string
+                  lessons:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        title:
+                          type: string
+                        unitId:
+                          type: string
+                        focusSkillTag:
+                          type: string
+                          enum:
+                            - vocab
+                            - sentence_understanding
+                            - structure
+                            - main_idea
+                            - evidence_locating
+                            - recitation
+                        parentSuggestion:
+                          type: string
+  /lesson-pack/{id}:
+    get:
+      summary: Get lesson pack by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+        "404":
+          description: Lesson pack not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /session/start:
+    post:
+      summary: Start or resume learning session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionStartRequest"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionStartResponse"
+        "400":
+          description: Request validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Child or lesson not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /session/answer:
+    post:
+      summary: Submit answer and get feedback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionAnswerRequest"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionAnswerResponse"
+        "400":
+          description: Request validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Session or question not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /session/finish:
+    post:
+      summary: Finish active session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionFinishRequest"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionFinishResponse"
+        "400":
+          description: Request validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Session not completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /session/recitation:
+    post:
+      summary: Submit recitation completion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionRecitationRequest"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionRecitationResponse"
+        "400":
+          description: Request validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Child or lesson not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /review/answer:
+    post:
+      summary: Submit one review item result
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewAnswerRequest"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewAnswerResponse"
+        "400":
+          description: Request validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Child or review item not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /review-queue:
+    get:
+      summary: Get review queue
+      parameters:
+        - in: query
+          name: childId
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewQueueResponse"
+        "404":
+          description: Child not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /progress-summary:
+    get:
+      summary: Get child progress summary
+      parameters:
+        - in: query
+          name: childId
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgressSummaryResponse"
+        "404":
+          description: Child not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /parent/weekly-report:
+    get:
+      summary: Get parent weekly report
+      parameters:
+        - in: query
+          name: childId
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: parentId
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeeklyReportResponse"
+        "404":
+          description: Parent or child not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Parent-child mismatch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /parent/settings:
+    get:
+      summary: Get parent settings
+      parameters:
+        - in: query
+          name: parentId
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ParentSettingsResponse"
+        "404":
+          description: Parent not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: Update parent settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ParentSettingsUpdateRequest"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ParentSettingsResponse"
+        "400":
+          description: Request validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Parent not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /parent/export-data:
+    get:
+      summary: Export child learning data for parent
+      parameters:
+        - in: query
+          name: parentId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: childId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ParentDataExportResponse"
+        "400":
+          description: Request validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Parent or child not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Parent-child mismatch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    ParentSignupRequest:
+      type: object
+      required:
+        - account
+        - code
+      properties:
+        account:
+          type: string
+        code:
+          type: string
+    ParentSignupResponse:
+      type: object
+      properties:
+        requestId:
+          type: string
+        parentId:
+          type: string
+    GuardianConsentRequest:
+      type: object
+      required:
+        - parentId
+        - relation
+        - childUnder14
+        - agreed
+      properties:
+        parentId:
+          type: string
+        relation:
+          type: string
+          enum: [father, mother, other_guardian]
+        childUnder14:
+          type: boolean
+        agreed:
+          type: boolean
+    GuardianConsentResponse:
+      type: object
+      properties:
+        requestId:
+          type: string
+        consentId:
+          type: string
+        agreedAt:
+          type: string
+    GuardianConsentRecordResponse:
+      type: object
+      properties:
+        requestId:
+          type: string
+        consentId:
+          type: string
+        parentId:
+          type: string
+        relation:
+          type: string
+          enum: [father, mother, other_guardian]
+        childUnder14:
+          type: boolean
+        agreed:
+          type: boolean
+        agreedAt:
+          type: string
+        revokedAt:
+          type: string
+          nullable: true
+    GuardianConsentRevokeRequest:
+      type: object
+      required:
+        - parentId
+      properties:
+        parentId:
+          type: string
+    GuardianConsentRevokeResponse:
+      type: object
+      properties:
+        requestId:
+          type: string
+        consentId:
+          type: string
+        parentId:
+          type: string
+        status:
+          type: string
+          enum: [revoked]
+        revokedAt:
+          type: string
+    ChildProfileUpsertRequest:
+      type: object
+      required:
+        - parentId
+        - nickname
+      properties:
+        parentId:
+          type: string
+        childId:
+          type: string
+        nickname:
+          type: string
+        grade:
+          type: string
+        textbookVersion:
+          type: string
+        interests:
+          type: array
+          items:
+            type: string
+        readingLevel:
+          type: string
+    ChildProfileUpsertResponse:
+      type: object
+      properties:
+        requestId:
+          type: string
+        childId:
+          type: string
+    ChildProfileDeleteRequest:
+      type: object
+      required:
+        - parentId
+        - childId
+      properties:
+        parentId:
+          type: string
+        childId:
+          type: string
+    ChildProfileDeleteResponse:
+      type: object
+      properties:
+        requestId:
+          type: string
+        childId:
+          type: string
+        status:
+          type: string
+          enum: [deleted]
+        deletedAt:
+          type: string
+    SessionStartRequest:
+      type: object
+      required:
+        - childId
+        - lessonId
+      properties:
+        childId:
+          type: string
+        lessonId:
+          type: string
+        forceNew:
+          type: boolean
+    SessionStartResponse:
+      type: object
+      properties:
+        requestId:
+          type: string
+        sessionId:
+          type: string
+        lessonId:
+          type: string
+        cards:
+          type: array
+          items:
+            type: object
+    SessionAnswerRequest:
+      type: object
+      required:
+        - sessionId
+        - questionId
+        - selectedIndex
+      properties:
+        sessionId:
+          type: string
+        questionId:
+          type: string
+        selectedIndex:
+          type: integer
+    SessionAnswerResponse:
+      type: object
+      properties:
+        requestId:
+          type: string
+        correct:
+          type: boolean
+        skillTag:
+          type: string
+        errorTag:
+          type: string
+          nullable: true
+        feedback:
+          type: object
+          properties:
+            whyWrong:
+              type: string
+            evidenceText:
+              type: string
+            retryQuestion:
+              type: string
+    SessionFinishRequest:
+      type: object
+      required:
+        - sessionId
+        - completed
+      properties:
+        sessionId:
+          type: string
+        completed:
+          type: boolean
+    SessionFinishResponse:
+      type: object
+      properties:
+        requestId:
+          type: string
+        sessionId:
+          type: string
+        status:
+          type: string
+          enum: [finished]
+    SessionRecitationRequest:
+      type: object
+      required:
+        - childId
+        - lessonId
+      properties:
+        childId:
+          type: string
+        lessonId:
+          type: string
+        segmentId:
+          type: string
+        durationSec:
+          type: number
+          minimum: 0
+    SessionRecitationResponse:
+      type: object
+      properties:
+        requestId:
+          type: string
+        status:
+          type: string
+          enum: [recorded]
+        segmentId:
+          type: string
+        completedAt:
+          type: string
+        message:
+          type: string
+    ReviewAnswerRequest:
+      type: object
+      required:
+        - childId
+        - reviewId
+        - selectedIndex
+      properties:
+        childId:
+          type: string
+        reviewId:
+          type: string
+        selectedIndex:
+          type: integer
+          minimum: 0
+    ReviewAnswerResponse:
+      type: object
+      properties:
+        requestId:
+          type: string
+        reviewId:
+          type: string
+        correct:
+          type: boolean
+        status:
+          type: string
+          enum: [pending, done]
+        nextDueAt:
+          type: string
+          enum: [today, tomorrow, 3d, 7d]
+        feedback:
+          type: object
+          properties:
+            message:
+              type: string
+            evidence:
+              type: string
+    ReviewQueueResponse:
+      type: object
+      properties:
+        requestId:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReviewQueueItem"
+    ReviewQueueItem:
+      type: object
+      properties:
+        id:
+          type: string
+        targetType:
+          type: string
+          enum: [vocab, evidence_locating, main_idea, recitation]
+        title:
+          type: string
+        dueAt:
+          type: string
+          enum: [today, tomorrow, 3d, 7d]
+        status:
+          type: string
+          enum: [pending, done]
+        difficulty:
+          type: string
+          enum: [basic, medium, advanced]
+        practice:
+          $ref: "#/components/schemas/ReviewPracticePayload"
+    ReviewPracticePayload:
+      type: object
+      properties:
+        stem:
+          type: string
+        options:
+          type: array
+          items:
+            type: string
+    ProgressSummaryResponse:
+      type: object
+      properties:
+        requestId:
+          type: string
+        completedLessons:
+          type: integer
+        averageDurationMin:
+          type: number
+        masteredTags:
+          type: array
+          items:
+            type: string
+    WeeklyReportResponse:
+      type: object
+      properties:
+        requestId:
+          type: string
+        weeklyCompletedLessons:
+          type: integer
+        averageDurationMin:
+          type: number
+        errorDistribution:
+          type: object
+          properties:
+            vocab_unknown:
+              type: number
+            evidence_missed:
+              type: number
+            main_idea_off:
+              type: number
+        recitation:
+          type: object
+          properties:
+            completedCount:
+              type: integer
+            unstableSegments:
+              type: array
+              items:
+                type: string
+    ParentSettingsResponse:
+      type: object
+      properties:
+        requestId:
+          type: string
+        parentId:
+          type: string
+        studyDurationLimitMin:
+          type: integer
+        reminderTime:
+          type: string
+        updatedAt:
+          type: string
+    ParentSettingsUpdateRequest:
+      type: object
+      required:
+        - parentId
+        - studyDurationLimitMin
+        - reminderTime
+      properties:
+        parentId:
+          type: string
+        studyDurationLimitMin:
+          type: integer
+          minimum: 5
+          maximum: 120
+        reminderTime:
+          type: string
+          pattern: "^([01]\\d|2[0-3]):([0-5]\\d)$"
+    ParentDataExportResponse:
+      type: object
+      properties:
+        requestId:
+          type: string
+        parentId:
+          type: string
+        childId:
+          type: string
+        exportedAt:
+          type: string
+        profile:
+          type: object
+          properties:
+            nickname:
+              type: string
+            grade:
+              type: string
+            textbookVersion:
+              type: string
+            interests:
+              type: array
+              items:
+                type: string
+            readingLevel:
+              type: string
+        progressSummary:
+          type: object
+          properties:
+            completedLessons:
+              type: integer
+            averageDurationMin:
+              type: number
+            masteredTags:
+              type: array
+              items:
+                type: string
+        weeklyReport:
+          type: object
+          properties:
+            weeklyCompletedLessons:
+              type: integer
+            averageDurationMin:
+              type: number
+        attemptsCount:
+          type: integer
+        recitationsCount:
+          type: integer
+    ErrorResponse:
+      type: object
+      properties:
+        requestId:
+          type: string
+        errorCode:
+          type: string
+        message:
+          type: string
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: string
+              message:
+                type: string
+              keyword:
+                type: string

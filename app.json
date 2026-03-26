@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "语文伴学",
+    "slug": "yuwen-banxue-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#F7F8FA"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "允许访问照片后，你可以上传教材、练习题或学习图片来生成个性化内容。",
+          "cameraPermission": "允许使用相机后，你可以拍照直接生成孩子当前最适合的学习内容。"
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "允许使用麦克风后，孩子可以直接跟读课文并获得朗读鼓励。",
+          "speechRecognitionPermission": "允许语音识别后，系统可以识别孩子的朗读内容并给出跟读反馈。"
+        }
+      ]
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.yuwen-banxue-app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#F7F8FA"
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
