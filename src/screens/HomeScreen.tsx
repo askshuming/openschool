@@ -35,6 +35,7 @@ import { useParentSettings } from "../hooks/useParentSettings";
 import { useProgressSummary } from "../hooks/useProgressSummary";
 import { useReviewQueue } from "../hooks/useReviewQueue";
 import { AppTabParamList } from "../navigation/types";
+import { buildHomeJourneyPresentation } from "../domain/learningJourneyPresentation";
 import { useAppState } from "../state/AppState";
 import {
   ContentInputRecord,
@@ -193,57 +194,21 @@ export function HomeScreen({ navigation, route }: Props) {
   const readingLevelLabel = childProfile?.readingLevel
     ? readingLevelLabelMap[childProfile.readingLevel]
     : "系统会自动调节";
-  const remainingSteps = Math.max(1, totalSteps - step);
   const latestInput = recentInputs[0] ?? null;
   const activeGeneratedInput = pendingGeneratedInput ?? latestInput;
   const resumableJourneyInput = journeyInput ?? latestInput;
-  const journeyLearningDone = Boolean(journeySession?.completedAt || lastCompletedSession?.completedAt);
-  const journeyInputStatusLabel = resumableJourneyInput ? "已输入" : "待输入";
-  const journeyLearningStatusLabel = hasInProgress
-    ? "进行中"
-    : journeyLearningDone
-      ? "已学完"
-      : resumableJourneyInput
-        ? "待开始"
-        : "未开始";
-  const journeyReviewStatusLabel = pendingReviewCount > 0
-    ? `${pendingReviewCount} 待复习`
-    : lastCompletedReview
-      ? "已复习"
-      : journeyLearningDone
-        ? "待出现"
-        : "未开始";
-  const journeyHeadline = hasInProgress
-    ? "继续把这份内容学完"
-    : journeyLearningDone && pendingReviewCount > 0
-      ? "学习已完成，下一步做温和复习"
-      : resumableJourneyInput
-        ? "这份内容已经收好，直接开始学"
-        : "先拍一页，主线就会开始";
-  const journeyBody = hasInProgress
-    ? `${childProfile?.nickname ?? "孩子"} 正在学「${journeySession?.lessonTitle ?? inProgressLesson?.title ?? "当前内容"}」，剩下的步骤不多了。`
-    : journeyLearningDone && pendingReviewCount > 0
-      ? `刚学完「${journeySession?.lessonTitle ?? lastCompletedSession?.lessonTitle ?? "当前内容"}」，现在最适合做 ${pendingReviewCount} 项温和复习。`
-      : resumableJourneyInput
-        ? `基于「${resumableJourneyInput.title}」已经排好学习路线，下次打开也能从这里续上。`
-        : "拍照或上传后，系统会自动识别内容，并把今天的学习路线和下一步动作串起来。";
-  const journeyInputMeta = resumableJourneyInput
-    ? `${getInputSourceLabel(resumableJourneyInput.source)} · ${resumableJourneyInput.title}`
-    : "拍照或上传后自动记录";
-  const journeyLearningMeta = hasInProgress
-    ? `第 ${step}/${Math.max(totalSteps, 1)} 步`
-    : journeyLearningDone
-      ? "已完成"
-      : resumableJourneyInput
-        ? `${resumableJourneyInput.generatedTaskCount} 步任务`
-        : "识别后开始";
-  const journeyReviewMeta = pendingReviewCount > 0
-    ? `${pendingReviewCount} 项待巩固`
-    : lastCompletedReview
-      ? `已完成 ${lastCompletedReview.completedCount} 题`
-      : journeyLearningDone
-        ? "学完后自动出现"
-        : "暂未开始";
+  const homeJourney = buildHomeJourneyPresentation({
+    resumableInput: resumableJourneyInput,
+    currentSession: journeySession,
+    lastCompletedSession,
+    lastCompletedReview,
+    hasInProgress,
+    pendingReviewCount,
+    sessionStep: step,
+    sessionTotalSteps: totalSteps,
+    defaultLessonTitle: inProgressLesson?.title,
+    childDisplayName: childProfile?.nickname ?? "孩子",
+  });
 
   const refreshing =
     progressQuery.isRefetching ||
@@ -444,67 +409,41 @@ export function HomeScreen({ navigation, route }: Props) {
     });
   }
 
-  const journeyPrimaryAction = hasInProgress
-    ? {
-        label: "继续这节学习",
-        onPress: resumeSession,
-      }
-    : journeyLearningDone && pendingReviewCount > 0
-      ? {
-          label: "去做温和复习",
-          onPress: () =>
-            navigation.navigate(
-              "Review",
-              firstPendingReview ? { focusReviewId: firstPendingReview.id } : undefined,
-            ),
-        }
-      : resumableJourneyInput
-        ? {
-            label: "开始这份内容",
-            onPress: startJourneyLearning,
-          }
-        : {
-            label: "回到拍照入口",
-            onPress: handleCameraStart,
-          };
-  const secondaryAction = hasInProgress
-    ? {
-        title: "继续学习",
-        subtitle: `还剩 ${remainingSteps} 步`,
-        icon: "play-circle-outline" as const,
-        onPress: resumeSession,
-      }
-    : journeyLearningDone && pendingReviewCount > 0
-      ? {
-          title: "去复习",
-          subtitle: `${pendingReviewCount} 项待巩固`,
-          icon: "refresh-circle-outline" as const,
-          onPress: () =>
-            navigation.navigate(
-              "Review",
-              firstPendingReview ? { focusReviewId: firstPendingReview.id } : undefined,
-            ),
-        }
-      : resumableJourneyInput
-        ? {
-            title: "开始内容",
-            subtitle: `${resumableJourneyInput.generatedTaskCount} 步任务`,
-            icon: "play-circle-outline" as const,
-            onPress: startJourneyLearning,
-          }
-        : pendingReviewCount > 0
-          ? {
-              title: "去复习",
-              subtitle: `${pendingReviewCount} 项待巩固`,
-              icon: "refresh-circle-outline" as const,
-              onPress: () => navigation.navigate("Review"),
-            }
-          : {
-              title: "我的",
-              subtitle: "查看学习概况",
-              icon: "person-circle-outline" as const,
-              onPress: () => navigation.navigate("Parent"),
-            };
+  function runHomeJourneyAction(kind: typeof homeJourney.primaryAction.kind | typeof homeJourney.secondaryAction.kind) {
+    switch (kind) {
+      case "resume_session":
+        resumeSession();
+        break;
+      case "open_review_focus":
+        navigation.navigate("Review", firstPendingReview ? { focusReviewId: firstPendingReview.id } : undefined);
+        break;
+      case "start_content":
+        startJourneyLearning();
+        break;
+      case "capture":
+        void handleCameraStart();
+        break;
+      case "open_review":
+        navigation.navigate("Review");
+        break;
+      case "open_parent":
+        navigation.navigate("Parent");
+        break;
+      default:
+        break;
+    }
+  }
+
+  const journeyPrimaryAction = {
+    label: homeJourney.primaryAction.label,
+    onPress: () => runHomeJourneyAction(homeJourney.primaryAction.kind),
+  };
+  const secondaryAction = {
+    title: homeJourney.secondaryAction.title,
+    subtitle: homeJourney.secondaryAction.subtitle,
+    icon: homeJourney.secondaryAction.icon,
+    onPress: () => runHomeJourneyAction(homeJourney.secondaryAction.kind),
+  };
 
   function showLaunchUnavailableNotice() {
     setNotice({
@@ -1048,59 +987,48 @@ export function HomeScreen({ navigation, route }: Props) {
           <View style={styles.rowTop}>
             <Text style={textStyles.title}>今天的学习主线</Text>
             <StatusChip
-              label={
-                hasInProgress
-                  ? "学习中"
-                  : journeyLearningDone && pendingReviewCount === 0
-                    ? "已闭环"
-                    : "自动续上"
-              }
-              tone={hasInProgress || pendingReviewCount > 0 ? "accent" : "primary"}
+              label={homeJourney.statusLabel}
+              tone={homeJourney.statusTone}
             />
           </View>
           <View style={styles.journeyFocusCard}>
-            <Text style={styles.cardText}>{journeyHeadline}</Text>
-            <Text style={styles.journeyLeadText}>{journeyBody}</Text>
+            <Text style={styles.cardText}>{homeJourney.headline}</Text>
+            <Text style={styles.journeyLeadText}>{homeJourney.body}</Text>
           </View>
 
           <View style={styles.journeyMiniTrack}>
-            <View style={[styles.journeyMiniStep, resumableJourneyInput && styles.journeyMiniStepDone]}>
+            <View style={[styles.journeyMiniStep, homeJourney.inputDone && styles.journeyMiniStepDone]}>
               <Text style={styles.journeyMiniTitle}>输入内容</Text>
               <Text style={styles.journeyMiniMeta} numberOfLines={2}>
-                {journeyInputMeta}
+                {homeJourney.inputMeta}
               </Text>
-              <StatusChip label={journeyInputStatusLabel} tone="primary" />
+              <StatusChip label={homeJourney.inputStatusLabel} tone="primary" />
             </View>
 
             <View
               style={[
                 styles.journeyMiniStep,
-                (hasInProgress || journeyLearningDone) && styles.journeyMiniStepDone,
+                homeJourney.learningDone && styles.journeyMiniStepDone,
               ]}
             >
               <Text style={styles.journeyMiniTitle}>开始学习</Text>
               <Text style={styles.journeyMiniMeta} numberOfLines={2}>
-                {journeySession?.lessonTitle || lastCompletedSession?.lessonTitle
-                  ? `${journeySession?.lessonTitle ?? lastCompletedSession?.lessonTitle} · ${journeyLearningMeta}`
-                  : journeyLearningMeta}
+                {homeJourney.learningDisplay}
               </Text>
-              <StatusChip label={journeyLearningStatusLabel} tone={hasInProgress ? "accent" : "primary"} />
+              <StatusChip label={homeJourney.learningStatusLabel} tone={hasInProgress ? "accent" : "primary"} />
             </View>
 
             <View
               style={[
                 styles.journeyMiniStep,
-                (pendingReviewCount > 0 || lastCompletedReview) && styles.journeyMiniStepDone,
+                homeJourney.reviewDone && styles.journeyMiniStepDone,
               ]}
             >
               <Text style={styles.journeyMiniTitle}>温和复习</Text>
               <Text style={styles.journeyMiniMeta} numberOfLines={2}>
-                {journeyReviewMeta}
+                {homeJourney.reviewMeta}
               </Text>
-              <StatusChip
-                label={journeyReviewStatusLabel}
-                tone={pendingReviewCount > 0 ? "accent" : "primary"}
-              />
+              <StatusChip label={homeJourney.reviewStatusLabel} tone={pendingReviewCount > 0 ? "accent" : "primary"} />
             </View>
           </View>
 

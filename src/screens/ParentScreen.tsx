@@ -37,6 +37,7 @@ import { ScreenLoadingState } from "../components/states/ScreenLoadingState";
 import { ScreenOfflineState } from "../components/states/ScreenOfflineState";
 import { colors, spacing } from "../design/tokens";
 import { layoutStyles, textStyles } from "../design/theme";
+import { buildParentJourneyPresentation } from "../domain/learningJourneyPresentation";
 import { useCatalog } from "../hooks/useCatalog";
 import { useGuardianConsentRecord } from "../hooks/useGuardianConsentRecord";
 import { AppTabParamList } from "../navigation/types";
@@ -46,7 +47,6 @@ import { useReviewQueue } from "../hooks/useReviewQueue";
 import { useWeeklyReport } from "../hooks/useWeeklyReport";
 import { useAppState } from "../state/AppState";
 import {
-  getInputSourceLabel,
   useContentInputStore,
 } from "../state/contentInputStore";
 import { useLearningJourneyStore } from "../state/learningJourneyStore";
@@ -304,17 +304,18 @@ export function ParentScreen({ navigation }: Props) {
   const pendingReviewItems = (reviewQueueQuery.data?.items ?? []).filter((item) => item.status === "pending");
   const pendingReviewCount = pendingReviewItems.length;
   const firstPendingReview = pendingReviewItems[0] ?? null;
-  const journeyCompletedLearning = Boolean(journeySession?.completedAt || lastCompletedSession?.completedAt);
-  const journeyLessonTitle =
-    journeySession?.lessonTitle ?? lastCompletedSession?.lessonTitle ?? recentLesson?.title ?? "当前内容";
-  const currentJourneyStatus = hasInProgress
-    ? "学习中"
-    : journeyCompletedLearning && pendingReviewCount > 0
-      ? "该复习了"
-      : resumableInput
-        ? "已安排"
-        : "待开始";
-  const journeyStatusTone = hasInProgress || pendingReviewCount > 0 ? ("accent" as const) : ("primary" as const);
+  const parentJourney = buildParentJourneyPresentation({
+    resumableInput,
+    currentSession: journeySession,
+    lastCompletedSession,
+    lastCompletedReview,
+    hasInProgress,
+    pendingReviewCount,
+    sessionStep,
+    sessionTotalSteps,
+    defaultLessonTitle: recentLesson?.title,
+    childDisplayName,
+  });
 
   function resumeSession() {
     navigation.navigate("Session", {
@@ -344,46 +345,45 @@ export function ParentScreen({ navigation }: Props) {
     );
   }
 
-  const heroMascotState: MascotState = hasInProgress
-    ? "teacher"
-    : journeyCompletedLearning && pendingReviewCount > 0
-      ? "encourage"
-      : resumableInput
-        ? "wow"
-        : "happy";
-  const heroSpeech = hasInProgress
-    ? "这节课先学完"
-    : journeyCompletedLearning && pendingReviewCount > 0
-      ? "先稳稳复习一题"
-      : resumableInput
-        ? "这份内容已经排好了"
-        : "拍一页，主线就开始";
-  const heroTitle = hasInProgress
-    ? "当前学习正在继续"
-    : journeyCompletedLearning && pendingReviewCount > 0
-      ? "今天先把这次复习收好"
-      : resumableInput
-        ? "这份内容已经准备好了"
-        : "先拍一页，马上开始学";
-  const heroBody = hasInProgress
-    ? `${childDisplayName} 正在学「${journeyLessonTitle}」，还剩 ${Math.max(1, sessionTotalSteps - sessionStep)} 步。`
-    : journeyCompletedLearning && pendingReviewCount > 0
-      ? `刚学完「${journeyLessonTitle}」，现在最适合先做 ${pendingReviewCount} 项温和复习。`
-      : resumableInput
-        ? `基于「${resumableInput.title}」已经匹配${resumableInput.routeLabel}，随时都能从这里接上。`
-        : "教材页、练习题、板书、图片都能拍；系统会识别内容并安排合适路线。";
-  const heroPrimaryAction = hasInProgress
-    ? { label: "继续学习", onPress: resumeSession }
-    : journeyCompletedLearning && pendingReviewCount > 0
-      ? { label: "去做温和复习", onPress: openReviewFocus }
-      : resumableInput
-        ? { label: "开始这份内容", onPress: startResumableContent }
-        : { label: "回首页拍照", onPress: () => navigation.navigate("Home") };
-  const heroSecondaryAction = hasInProgress
-    ? { label: "回首页拍照", onPress: () => navigation.navigate("Home") }
-    : pendingReviewCount > 0
-      ? { label: "查看复习页", onPress: () => navigation.navigate("Review") }
-      : { label: showAdvanced ? "收起详细设置" : "展开详细设置", onPress: () => setShowAdvanced((prev) => !prev) };
+  function runParentJourneyAction(kind: ReturnType<typeof buildParentJourneyPresentation>["primaryAction"]["kind"] | ReturnType<typeof buildParentJourneyPresentation>["secondaryActionKind"]) {
+    switch (kind) {
+      case "resume_session":
+        resumeSession();
+        break;
+      case "open_review_focus":
+        openReviewFocus();
+        break;
+      case "start_content":
+        startResumableContent();
+        break;
+      case "go_home":
+        navigation.navigate("Home");
+        break;
+      case "open_review":
+        navigation.navigate("Review");
+        break;
+      case "toggle_advanced":
+        setShowAdvanced((prev) => !prev);
+        break;
+      default:
+        break;
+    }
+  }
+  const heroPrimaryAction = {
+    label: parentJourney.primaryAction.label,
+    onPress: () => runParentJourneyAction(parentJourney.primaryAction.kind),
+  };
+  const heroSecondaryAction = {
+    label:
+      parentJourney.secondaryActionKind === "toggle_advanced"
+        ? showAdvanced
+          ? "收起详细设置"
+          : "展开详细设置"
+        : parentJourney.secondaryActionKind === "go_home"
+          ? "回首页拍照"
+          : "查看复习页",
+    onPress: () => runParentJourneyAction(parentJourney.secondaryActionKind),
+  };
 
   function toggleDetailSection(section: keyof typeof expandedDetailSections) {
     setExpandedDetailSections((prev) => ({
@@ -463,15 +463,15 @@ export function ParentScreen({ navigation }: Props) {
       }
     >
       <ParentHeroCard
-        currentJourneyStatus={currentJourneyStatus}
-        statusTone={journeyStatusTone}
-        title={heroTitle}
-        body={heroBody}
+        currentJourneyStatus={parentJourney.currentJourneyStatus}
+        statusTone={parentJourney.statusTone}
+        title={parentJourney.heroTitle}
+        body={parentJourney.heroBody}
         childGradeLabel={childGradeLabel}
         focusLabel={focusLabel}
         uploadedTextbookLabel={uploadedTextbookLabel}
-        mascotState={heroMascotState}
-        mascotSpeech={heroSpeech}
+        mascotState={parentJourney.mascotState as MascotState}
+        mascotSpeech={parentJourney.heroSpeech}
         primaryAction={heroPrimaryAction}
         secondaryAction={heroSecondaryAction}
       />
@@ -484,40 +484,18 @@ export function ParentScreen({ navigation }: Props) {
       />
 
       <ParentJourneyCard
-        currentJourneyStatus={currentJourneyStatus}
-        statusTone={journeyStatusTone}
-        title={
-          hasInProgress
-            ? `正在学「${journeyLessonTitle}」`
-            : journeyCompletedLearning && pendingReviewCount > 0
-              ? `「${journeyLessonTitle}」学完了，下一步先复习`
-              : resumableInput
-                ? `已收好「${resumableInput.title}」`
-                : "还没有新的输入内容"
-        }
-        inputDone={Boolean(resumableInput)}
-        inputTitle={resumableInput ? resumableInput.title : "拍照或上传后自动记录"}
-        inputMeta={resumableInput ? getInputSourceLabel(resumableInput.source) : "等待开始"}
-        learningDone={Boolean(hasInProgress || journeyCompletedLearning || resumableInput)}
-        learningTitle={journeyLessonTitle}
-        learningMeta={
-          hasInProgress
-            ? `第 ${sessionStep}/${sessionTotalSteps} 步`
-            : journeyCompletedLearning
-              ? "已完成"
-              : resumableInput
-                ? `${resumableInput.generatedTaskCount} 步任务`
-                : "待开始"
-        }
-        reviewDone={Boolean(pendingReviewCount > 0 || lastCompletedReview)}
-        reviewTitle={pendingReviewCount > 0 ? "今天先复习眼前这一题" : "学完后自动接上"}
-        reviewMeta={
-          pendingReviewCount > 0
-            ? `${pendingReviewCount} 项待巩固`
-            : lastCompletedReview
-              ? `已完成 ${lastCompletedReview.completedCount} 题`
-              : "暂未开始"
-        }
+        currentJourneyStatus={parentJourney.currentJourneyStatus}
+        statusTone={parentJourney.statusTone}
+        title={parentJourney.journeyCardTitle}
+        inputDone={parentJourney.inputDone}
+        inputTitle={parentJourney.inputTitle}
+        inputMeta={parentJourney.inputMeta}
+        learningDone={parentJourney.learningDone}
+        learningTitle={parentJourney.learningTitle}
+        learningMeta={parentJourney.learningMeta}
+        reviewDone={parentJourney.reviewDone}
+        reviewTitle={parentJourney.reviewTitle}
+        reviewMeta={parentJourney.reviewMeta}
       />
 
       <ParentProfileCard
@@ -530,8 +508,12 @@ export function ParentScreen({ navigation }: Props) {
       {latestInput ? (
         <ParentLatestInputCard
           latestInput={latestInput}
-          primaryActionLabel={hasInProgress ? "继续当前学习" : "开始这份内容"}
-          onPrimaryAction={hasInProgress ? resumeSession : startResumableContent}
+          primaryActionLabel={
+            parentJourney.primaryAction.kind === "resume_session" ? "继续当前学习" : "开始这份内容"
+          }
+          onPrimaryAction={
+            parentJourney.primaryAction.kind === "resume_session" ? resumeSession : startResumableContent
+          }
           onHomeAction={() => navigation.navigate("Home")}
         />
       ) : null}
