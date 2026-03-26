@@ -55,6 +55,7 @@ type HomeNotice = {
   title: string;
   body: string;
   tone: "success" | "primary";
+  nextStep?: string;
 };
 
 const gradeLabelMap: Record<string, string> = {
@@ -304,9 +305,10 @@ export function HomeScreen({ navigation, route }: Props) {
       id: celebrationAt,
       title: "学习已完成",
       body: route.params?.celebrationLessonTitle
-        ? `已完成「${route.params.celebrationLessonTitle}」，继续保持。`
-        : "已完成一节学习任务，继续保持。",
+        ? `「${route.params.celebrationLessonTitle}」这一页已经学完了。`
+        : "这一页已经学完了。",
       tone: "success",
+      nextStep: "先收 1 题温和复习；如果今天还要学新的，继续拍下一页",
     });
     triggerFeedback("success");
     noticeAnim.setValue(0);
@@ -333,9 +335,13 @@ export function HomeScreen({ navigation, route }: Props) {
       title: "复习进度已同步",
       body:
         route.params?.reviewCompletedMode === "batch"
-          ? `今日批量复习已完成 ${count} 题。`
-          : `快速复习已完成 ${count} 题。`,
+          ? `这轮温和复习已经完成 ${count} 题。`
+          : `眼前这题已经收住了，共完成 ${count} 题。`,
       tone: "primary",
+      nextStep:
+        route.params?.reviewCompletedMode === "batch"
+          ? "可以回首页继续拍新的不会内容"
+          : "如果还有待复习内容，继续收下一题；如果没有，就回首页拍下一页",
     });
     triggerFeedback("success");
     noticeAnim.setValue(0);
@@ -597,7 +603,12 @@ export function HomeScreen({ navigation, route }: Props) {
               },
             ]}
           >
-            <HomeNoticeCard title={notice.title} body={notice.body} tone={notice.tone} />
+            <HomeNoticeCard
+              title={notice.title}
+              body={notice.body}
+              tone={notice.tone}
+              nextStep={notice.nextStep}
+            />
           </Animated.View>
         ) : null}
 

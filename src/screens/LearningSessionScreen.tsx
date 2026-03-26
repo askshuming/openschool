@@ -604,7 +604,7 @@ export function LearningSessionScreen({ navigation, route }: Props) {
           ? "不用自己判断内容类型。先把这一步做完，我继续带下一步。"
           : "先把这一步做完，我继续带下一步。"
       : isLast
-        ? "学完后首页主线会自动切到这次内容的温和复习。"
+        ? "回首页后会先收这页的 1 题温和复习；今天还想继续，就再拍下一页。"
         : isQuiz && answerResult?.correct
           ? "可以直接进入下一步。"
           : isRecitation
@@ -686,7 +686,12 @@ export function LearningSessionScreen({ navigation, route }: Props) {
           onCompleteRecitationPreview={completeRecitationForPreview}
         />
 
-        {isLast ? <LearningCompletionBridgeCard /> : null}
+        {isLast ? (
+          <LearningCompletionBridgeCard
+            lessonTitle={lessonTitle}
+            routeLabel={latestInput?.routeLabel}
+          />
+        ) : null}
       </ScrollView>
 
       <LearningActionDock

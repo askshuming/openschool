@@ -101,11 +101,11 @@ export function LearningActionDock({
           <AppButton label="继续下一步" onPress={onNext} />
         ) : null}
 
-        {isLast ? <AppButton label="学完这节，回首页" onPress={onComplete} /> : null}
+        {isLast ? <AppButton label="学完这一页，回首页" onPress={onComplete} /> : null}
 
         <View style={[styles.restartRow, !showRestart && styles.restartRowSingleAction]}>
           <Pressable hitSlop={8} onPress={onPause}>
-            <Text style={styles.pauseText}>回首页，稍后继续</Text>
+            <Text style={styles.pauseText}>{isLast ? "先回首页看看下一步" : "回首页，稍后继续"}</Text>
           </Pressable>
           {showRestart ? (
             <Pressable hitSlop={8} onPress={onRestart}>

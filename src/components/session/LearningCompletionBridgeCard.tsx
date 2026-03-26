@@ -4,16 +4,29 @@ import { StatusChip } from "../StatusChip";
 import { colors, spacing } from "../../design/tokens";
 import { textStyles } from "../../design/theme";
 
-export function LearningCompletionBridgeCard() {
+interface LearningCompletionBridgeCardProps {
+  lessonTitle: string;
+  routeLabel?: string;
+}
+
+export function LearningCompletionBridgeCard({
+  lessonTitle,
+  routeLabel,
+}: LearningCompletionBridgeCardProps) {
   return (
     <AppCard style={styles.card}>
       <View style={styles.rowTop}>
-        <Text style={styles.title}>这一页已经带过去了</Text>
-        <StatusChip label="自动续上" tone="primary" />
+        <Text style={styles.title}>这一页已经学完了</Text>
+        <StatusChip label="下一步已接上" tone="primary" />
       </View>
       <Text style={styles.text}>
-        不用手动找下一课。回到首页后，这次内容会自动进入主线，接着安排温和复习。
+        {`回到首页后，会先把「${lessonTitle}」稳稳收一下，再接温和复习。今天如果还有新的不会内容，继续拍下一页就行。`}
       </Text>
+      <View style={styles.metaRow}>
+        {routeLabel ? <StatusChip label={routeLabel} tone="accent" /> : null}
+        <StatusChip label="先收 1 题温和复习" />
+        <StatusChip label="再拍下一页" />
+      </View>
     </AppCard>
   );
 }
@@ -38,5 +51,10 @@ const styles = StyleSheet.create({
     ...textStyles.caption,
     color: colors.textSecondary,
     lineHeight: 20,
+  },
+  metaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.xs,
   },
 });

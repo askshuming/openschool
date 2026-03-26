@@ -9,9 +9,10 @@ interface HomeNoticeCardProps {
   title: string;
   body: string;
   tone: "success" | "primary";
+  nextStep?: string;
 }
 
-export function HomeNoticeCard({ title, body, tone }: HomeNoticeCardProps) {
+export function HomeNoticeCard({ title, body, tone, nextStep }: HomeNoticeCardProps) {
   return (
     <AppCard style={[styles.card, tone === "success" && styles.cardSuccess]}>
       <View style={styles.inner}>
@@ -26,6 +27,7 @@ export function HomeNoticeCard({ title, body, tone }: HomeNoticeCardProps) {
             <StatusChip label={tone === "success" ? "完成" : "已同步"} tone={tone === "success" ? "accent" : "primary"} />
           </View>
           <Text style={styles.body}>{body}</Text>
+          {nextStep ? <Text style={styles.nextStep}>下一步：{nextStep}</Text> : null}
         </View>
       </View>
     </AppCard>
@@ -60,5 +62,9 @@ const styles = StyleSheet.create({
   body: {
     ...textStyles.body,
     color: colors.textSecondary,
+  },
+  nextStep: {
+    ...textStyles.meta,
+    color: colors.primary600,
   },
 });
