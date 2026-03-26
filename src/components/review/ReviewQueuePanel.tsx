@@ -46,14 +46,14 @@ export function ReviewQueuePanel({
       >
         <View style={styles.queueDisclosureCopy}>
           <Text style={styles.queueDisclosureTitle}>
-            {showQueueDetails ? "收起复习队列与历史" : "查看复习队列与历史"}
+            {showQueueDetails ? "收起完整复习清单" : "看完整复习清单"}
           </Text>
           <Text style={styles.queueDisclosureMeta}>
             {todayPendingCount > 0
-              ? `待复习 ${todayPendingCount} 项，已完成 ${doneCount} 项`
+              ? `今天还剩 ${todayPendingCount} 项，默认先把注意力留给眼前这一题`
               : doneCount > 0
                 ? `今天已完成 ${doneCount} 项复习，记录都收在这里`
-                : "默认先把注意力留给眼前这一题"}
+                : "没有待复习内容时，再从这里看历史"}
           </Text>
         </View>
         <Ionicons
@@ -83,11 +83,11 @@ export function ReviewQueuePanel({
           </View>
 
           <View style={styles.queueSectionHead}>
-            <Text style={styles.queueSectionTitle}>{tab === "today" ? "手动查看复习队列" : "最近完成记录"}</Text>
+            <Text style={styles.queueSectionTitle}>{tab === "today" ? "手动切换复习题" : "最近完成记录"}</Text>
             <Text style={styles.queueSectionMeta}>
               {tab === "today"
                 ? list.length > 0
-                  ? `共 ${list.length} 项待巩固`
+                  ? `共 ${list.length} 项待巩固，想手动挑题时再看这里`
                   : "当前没有待复习内容"
                 : list.length > 0
                   ? `共 ${list.length} 项已完成`
@@ -117,7 +117,7 @@ export function ReviewQueuePanel({
                   <View style={styles.actionRow}>
                     <StatusChip label={item.status === "pending" ? "待巩固" : "已完成"} />
                     <Pressable hitSlop={8} onPress={() => onPracticeItem(item)}>
-                      <Text style={styles.link}>{item.status === "pending" ? "快速复习" : "再练一次"}</Text>
+                      <Text style={styles.link}>{item.status === "pending" ? "就做这题" : "再练一次"}</Text>
                     </Pressable>
                   </View>
                 </AppCard>

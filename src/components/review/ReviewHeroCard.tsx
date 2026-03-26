@@ -7,6 +7,8 @@ import { StatusChip } from "../StatusChip";
 import { colors, radius, spacing } from "../../design/tokens";
 import { textStyles } from "../../design/theme";
 import {
+  getReviewCoachHint,
+  getReviewCoachTitle,
   getReviewDifficultyLabel,
   getReviewDueText,
   getReviewTypeLabel,
@@ -31,43 +33,53 @@ export function ReviewHeroCard({
   onPrimaryAction,
   onSecondaryAction,
 }: ReviewHeroCardProps) {
+  const focusTitle = nextPendingItem
+    ? getReviewCoachTitle(nextPendingItem.targetType)
+    : `已完成 ${doneCount} 项复习，今天先到这里`;
+  const focusHint = nextPendingItem
+    ? getReviewCoachHint(nextPendingItem.targetType)
+    : "如果还要推进新内容，直接回首页拍不会的那一页。";
+
   return (
     <AppCard style={styles.card}>
       <View style={styles.inner}>
         <MascotBuddy
           state={pendingCount > 0 ? "teacher" : "happy"}
           size={92}
-          speech={pendingCount > 0 ? "今天先做一题就够了" : "今天的复习已经完成啦"}
+          speech={pendingCount > 0 ? "今天先做眼前这一题" : "今天的复习已经收好了"}
         />
         <View style={styles.copy}>
           <View style={styles.rowTop}>
-            <Text style={textStyles.h2}>温和复习</Text>
+            <Text style={textStyles.h2}>先复习眼前这一题</Text>
             <StatusChip label={pendingCount > 0 ? `${pendingCount} 待复习` : "已清空"} tone={pendingCount > 0 ? "accent" : "primary"} />
           </View>
           <Text style={styles.body}>
             {pendingCount > 0
-              ? "不用一次做完。先复习眼前这一题，系统会自动继续安排。"
-              : "今天需要巩固的内容已经清空。下一次学习建议从首页拍照进入。"}
+              ? "不用一次做完。先把这一题收住，做完后我再决定要不要继续下一题。"
+              : "今天需要巩固的内容已经清空。下一次学习从首页拍照进入就行。"}
           </Text>
           {nextPendingItem ? (
             <View style={styles.focusWrap}>
               <View style={styles.focusHeader}>
-                <Text style={styles.focusEyebrow}>今天最该先做</Text>
+                <Text style={styles.focusEyebrow}>现在先做</Text>
                 <View style={styles.focusChipRow}>
                   <StatusChip label={getReviewTypeLabel(nextPendingItem.targetType)} tone="primary" />
                   <StatusChip label={getReviewDifficultyLabel(nextPendingItem.difficulty)} />
                 </View>
               </View>
-              <Text style={styles.focusTitle}>{nextPendingItem.title}</Text>
+              <Text style={styles.focusTitle}>{focusTitle}</Text>
+              <Text style={styles.focusTask} numberOfLines={1}>
+                {nextPendingItem.title}
+              </Text>
               <Text style={styles.focusMeta}>
-                到期：{getReviewDueText(nextPendingItem.dueAt)} · 做完这题，系统会判断下一题要不要继续做
+                {focusHint} · 到期：{getReviewDueText(nextPendingItem.dueAt)}
               </Text>
             </View>
           ) : (
             <View style={styles.focusWrap}>
               <Text style={styles.focusEyebrow}>今天的结果</Text>
-              <Text style={styles.focusTitle}>已完成 {doneCount} 项复习，今天先到这里就可以。</Text>
-              <Text style={styles.focusMeta}>如果还想继续推进新内容，直接回首页拍一页。</Text>
+              <Text style={styles.focusTitle}>{focusTitle}</Text>
+              <Text style={styles.focusMeta}>{focusHint}</Text>
             </View>
           )}
         </View>
@@ -134,6 +146,10 @@ const styles = StyleSheet.create({
   focusTitle: {
     ...textStyles.title,
     color: colors.textPrimary,
+  },
+  focusTask: {
+    ...textStyles.body,
+    color: colors.textSecondary,
   },
   focusMeta: {
     ...textStyles.caption,

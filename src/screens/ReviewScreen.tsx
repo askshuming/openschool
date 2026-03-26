@@ -357,8 +357,8 @@ export function ReviewScreen({ navigation, route }: Props) {
         pendingCount={todayPendingItems.length}
         doneCount={doneItems.length}
         nextPendingItem={nextPendingItem}
-        primaryActionLabel={todayPendingItems.length > 0 ? "马上复习这一题" : "回首页拍照"}
-        secondaryActionLabel={todayPendingItems.length > 1 ? `连续复习 ${todayPendingItems.length} 题` : "查看队列和历史"}
+        primaryActionLabel={todayPendingItems.length > 0 ? "先做这一题" : "回首页拍照"}
+        secondaryActionLabel={todayPendingItems.length > 1 ? `继续做剩下 ${todayPendingItems.length} 题` : "看完整复习清单"}
         onPrimaryAction={
           todayPendingItems.length > 0 && nextPendingItem
             ? () => startSinglePractice(nextPendingItem)
@@ -390,9 +390,9 @@ export function ReviewScreen({ navigation, route }: Props) {
 
       {tab === "today" && todayPendingItems.length === 0 ? (
         <AppCard style={styles.itemCard}>
-          <Text style={textStyles.title}>下一步去做什么</Text>
+          <Text style={textStyles.title}>今天的复习已经收好了</Text>
           <Text style={styles.cardText}>
-            复习完成后，不需要再找内容。回首页拍一页，系统会直接生成新的个性化学习任务。
+            不用再找内容。回首页拍一页，系统会直接接上新的学习路线。
           </Text>
           <AppButton label="回首页拍照" onPress={() => navigation.navigate("Home")} />
         </AppCard>

@@ -4,11 +4,17 @@ import { ReviewAnswerResponse, ReviewQueueItem } from "../../api/contracts";
 import { AppButton } from "../AppButton";
 import { AppCard } from "../AppCard";
 import { FeedbackBox } from "../FeedbackBox";
+import { MascotBuddy } from "../MascotBuddy";
 import { ProgressHeader } from "../ProgressHeader";
 import { StatusChip } from "../StatusChip";
 import { colors, radius, spacing } from "../../design/tokens";
 import { layoutStyles, textStyles } from "../../design/theme";
-import { getReviewTypeLabel } from "../../domain/reviewPresentation";
+import {
+  getReviewCoachHint,
+  getReviewCoachTitle,
+  getReviewCompletionTitle,
+  getReviewTypeLabel,
+} from "../../domain/reviewPresentation";
 
 interface ReviewPracticeStageProps {
   topInset: number;
@@ -57,6 +63,10 @@ export function ReviewPracticeStage({
   onRetry,
   onContinue,
 }: ReviewPracticeStageProps) {
+  const coachTitle = getReviewCoachTitle(currentPracticeItem.targetType);
+  const coachHint = getReviewCoachHint(currentPracticeItem.targetType);
+  const completionTitle = getReviewCompletionTitle(currentPracticeItem.targetType);
+
   return (
     <ScrollView
       ref={scrollRef}
@@ -98,7 +108,25 @@ export function ReviewPracticeStage({
       </View>
       {practiceHint ? <Text style={styles.hintText}>{practiceHint}</Text> : null}
 
+      <AppCard style={styles.cueCard}>
+        <MascotBuddy
+          state={answerResult?.correct ? "happy" : showRetryActions ? "encourage" : "teacher"}
+          size={84}
+          speech={answerResult?.correct ? "这题已经稳住了" : "先把这一题做好"}
+        />
+        <View style={styles.cueCopy}>
+          <Text style={styles.cueLabel}>这一题只做一件事</Text>
+          <Text style={styles.cueTitle}>
+            {answerResult?.correct ? completionTitle : coachTitle}
+          </Text>
+          <Text style={styles.cueText}>
+            {answerResult?.correct ? "做完这一题后，我会继续安排下一题。" : coachHint}
+          </Text>
+        </View>
+      </AppCard>
+
       <AppCard style={styles.itemCard}>
+        <Text style={styles.cardEyebrow}>现在这题</Text>
         <Text style={textStyles.title}>{currentPracticeItem.title}</Text>
         <Text style={styles.cardText}>{currentQuestion.stem}</Text>
         <View style={styles.optionWrap}>
@@ -123,7 +151,7 @@ export function ReviewPracticeStage({
 
       {!answerResult ? (
         <AppButton
-          label={answerPending ? "判题中..." : "提交答案"}
+          label={answerPending ? "判题中..." : "选好了，提交"}
           onPress={onSubmit}
           disabled={selectedOption == null || answerPending}
         />
@@ -140,11 +168,11 @@ export function ReviewPracticeStage({
                 <AppButton label="再做一次" onPress={onRetry} />
               </View>
               <View style={styles.practiceActionCell}>
-                <AppButton label={isPracticeLast ? "先完成复习" : "先继续"} onPress={onContinue} variant="secondary" />
+                <AppButton label={isPracticeLast ? "先收好这次复习" : "先继续下一题"} onPress={onContinue} variant="secondary" />
               </View>
             </View>
           ) : (
-            <AppButton label={isPracticeLast ? "完成复习" : "下一题"} onPress={onContinue} />
+            <AppButton label={isPracticeLast ? "这题学稳了，回到复习页" : "这题学稳了，继续下一题"} onPress={onContinue} />
           )}
         </>
       )}
@@ -181,8 +209,36 @@ const styles = StyleSheet.create({
     color: colors.textTertiary,
     marginTop: -spacing.xs,
   },
+  cueCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    borderColor: colors.primary200,
+    backgroundColor: colors.primary50,
+  },
+  cueCopy: {
+    flex: 1,
+    gap: spacing.xxs,
+  },
+  cueLabel: {
+    ...textStyles.meta,
+    color: colors.primary600,
+  },
+  cueTitle: {
+    ...textStyles.title,
+    color: colors.textPrimary,
+  },
+  cueText: {
+    ...textStyles.caption,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
   itemCard: {
     gap: spacing.sm,
+  },
+  cardEyebrow: {
+    ...textStyles.meta,
+    color: colors.primary600,
   },
   cardText: {
     ...textStyles.body,

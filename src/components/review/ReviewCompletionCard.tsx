@@ -43,14 +43,14 @@ export function ReviewCompletionCard({
     >
       <AppCard style={[styles.card, styles.summaryCard]}>
         <View style={styles.summaryCardInner}>
-          <MascotBuddy state="teacher" size={88} speech={summary.mode === "batch" ? "今天的巩固完成了" : "这次复习很稳"} />
+          <MascotBuddy state="happy" size={88} speech={summary.mode === "batch" ? "今天的复习先收到这里" : "这题已经复习稳了"} />
           <View style={styles.summaryCopy}>
             <View style={styles.rowTop}>
-              <Text style={textStyles.title}>复习完成</Text>
+              <Text style={textStyles.title}>这次复习收住了</Text>
               <StatusChip tone="accent" label="已达成" />
             </View>
             <Text style={styles.body}>
-              {summary.mode === "batch" ? `你已完成今天复习，共 ${summary.completedCount} 题。` : "你已完成一次快速复习。"}
+              {summary.mode === "batch" ? `今天已经稳稳复习了 ${summary.completedCount} 题。` : "这一题已经稳稳复习完了。"}
             </Text>
           </View>
         </View>
@@ -59,7 +59,7 @@ export function ReviewCompletionCard({
             <Text style={styles.link}>收起提示</Text>
           </Pressable>
           <Pressable hitSlop={8} onPress={onBackHome}>
-            <Text style={styles.link}>回首页拍照</Text>
+            <Text style={styles.link}>回首页拍新内容</Text>
           </Pressable>
         </View>
       </AppCard>
