@@ -287,6 +287,7 @@ export function ReviewScreen({ navigation, route }: Props) {
       reviewCompletedAt: summary.createdAt,
       reviewCompletedCount: summary.completedCount,
       reviewCompletedMode: summary.mode,
+      reviewRemainingPendingCount: summary.remainingPendingCount,
     });
     setCompletionSummary(null);
   }

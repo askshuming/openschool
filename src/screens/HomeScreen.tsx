@@ -330,18 +330,23 @@ export function HomeScreen({ navigation, route }: Props) {
     }
     handledReviewRef.current = reviewAt;
     const count = Math.max(1, route.params?.reviewCompletedCount ?? 1);
+    const remainingPendingCount = Math.max(0, route.params?.reviewRemainingPendingCount ?? 0);
     setNotice({
       id: reviewAt,
       title: "复习进度已同步",
       body:
         route.params?.reviewCompletedMode === "batch"
-          ? `这轮温和复习已经完成 ${count} 题。`
-          : `眼前这题已经收住了，共完成 ${count} 题。`,
+          ? remainingPendingCount > 0
+            ? `这轮温和复习已经完成 ${count} 题，今天还剩 ${remainingPendingCount} 题。`
+            : `这轮温和复习已经完成 ${count} 题。`
+          : remainingPendingCount > 0
+            ? `眼前这题已经收住了，今天还剩 ${remainingPendingCount} 题。`
+            : `眼前这题已经收住了，共完成 ${count} 题。`,
       tone: "primary",
       nextStep:
-        route.params?.reviewCompletedMode === "batch"
-          ? "可以回首页继续拍新的不会内容"
-          : "如果还有待复习内容，继续收下一题；如果没有，就回首页拍下一页",
+        remainingPendingCount > 0
+          ? `如果今天还想继续巩固，回来再收剩下 ${remainingPendingCount} 题；如果要学新的，就回首页拍下一页`
+          : "今天这轮复习已经收好了，可以回首页继续拍新的不会内容",
     });
     triggerFeedback("success");
     noticeAnim.setValue(0);
@@ -354,6 +359,7 @@ export function HomeScreen({ navigation, route }: Props) {
       reviewCompletedAt: undefined,
       reviewCompletedCount: undefined,
       reviewCompletedMode: undefined,
+      reviewRemainingPendingCount: undefined,
     });
   }, [
     navigation,
@@ -361,6 +367,7 @@ export function HomeScreen({ navigation, route }: Props) {
     route.params?.reviewCompletedAt,
     route.params?.reviewCompletedCount,
     route.params?.reviewCompletedMode,
+    route.params?.reviewRemainingPendingCount,
   ]);
 
   useEffect(() => {

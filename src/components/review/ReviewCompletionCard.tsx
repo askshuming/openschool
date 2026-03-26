@@ -42,6 +42,10 @@ export function ReviewCompletionCard({
       : summary.remainingPendingCount > 0
         ? `这一题已经复习稳了，今天还剩 ${summary.remainingPendingCount} 题可继续收。`
         : "这一题已经复习稳了，今天的复习先到这里。";
+  const nextStep =
+    summary.remainingPendingCount > 0
+      ? `现在最适合先收下一题；如果今天想开始新内容，也可以回首页直接拍下一页。`
+      : "今天的复习先到这里。回首页后可以继续拍新的不会内容。";
 
   return (
     <Animated.View
@@ -73,7 +77,16 @@ export function ReviewCompletionCard({
               <StatusChip tone="accent" label="已达成" />
             </View>
             <Text style={styles.body}>{body}</Text>
+            <Text style={styles.nextStep}>{nextStep}</Text>
           </View>
+        </View>
+        <View style={styles.metaRow}>
+          <StatusChip label={`已完成 ${summary.completedCount} 题`} tone="accent" />
+          {summary.remainingPendingCount > 0 ? (
+            <StatusChip label={`还剩 ${summary.remainingPendingCount} 题`} />
+          ) : (
+            <StatusChip label="今天的复习已清空" tone="primary" />
+          )}
         </View>
         <View style={styles.ctaWrap}>
           <AppButton label={primaryActionLabel} onPress={onPrimaryAction} />
@@ -118,6 +131,15 @@ const styles = StyleSheet.create({
   body: {
     ...textStyles.body,
     color: colors.textSecondary,
+  },
+  nextStep: {
+    ...textStyles.meta,
+    color: colors.primary600,
+  },
+  metaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.xs,
   },
   actionRow: {
     flexDirection: "row",

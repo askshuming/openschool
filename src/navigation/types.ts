@@ -11,6 +11,7 @@ export type AppTabParamList = {
         reviewCompletedAt?: string;
         reviewCompletedCount?: number;
         reviewCompletedMode?: "single" | "batch";
+        reviewRemainingPendingCount?: number;
       }
     | undefined;
   Session:
