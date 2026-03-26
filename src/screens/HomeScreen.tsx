@@ -71,7 +71,6 @@ const readingLevelLabelMap = {
   very_struggling: "需要更多引导",
 } as const;
 
-const supportedInputLabels = ["教材页", "练习题", "板书", "图片"] as const;
 const GENERATED_DYNAMIC_LESSON_ID = "generated_dynamic";
 
 function pickRecommendedLesson(
@@ -155,6 +154,65 @@ export function HomeScreen({ navigation, route }: Props) {
     defaultLessonTitle: inProgressLesson?.title,
     childDisplayName: childProfile?.nickname ?? "孩子",
   });
+  const homePhase = homeJourney.primaryAction.kind;
+  const journeyLessonTitle =
+    journeySession?.lessonTitle ??
+    lastCompletedSession?.lessonTitle ??
+    resumableJourneyInput?.title ??
+    launchLesson?.title ??
+    "这份内容";
+  const routeFocusLabel = resumableJourneyInput?.routeLabel ?? "当前学习路线";
+  const routeFocusStep = resumableJourneyInput?.recommendedEntryStep ?? "先拍不会的这一页";
+  const routeChallenge =
+    latestInput && latestInput.id === resumableJourneyInput?.id
+      ? latestInput.primaryChallenge
+      : "课文页、阅读题、作文题、生字词都能直接拍。";
+  const heroTitle =
+    homePhase === "resume_session"
+      ? "这一页，继续往下学"
+      : homePhase === "open_review_focus"
+        ? "这一页，先稳稳收住"
+        : resumableJourneyInput
+          ? "这一页，已经安排好第一步"
+          : "不会的这一页，拍一下";
+  const heroSubtitle =
+    homePhase === "resume_session"
+      ? `当前在学「${journeyLessonTitle}」第 ${step}/${Math.max(totalSteps, 1)} 步，学完会自动接温和复习。`
+      : homePhase === "open_review_focus"
+        ? `刚学完「${journeyLessonTitle}」，现在先做 ${pendingReviewCount} 项温和复习，把这次内容收住。`
+        : resumableJourneyInput
+          ? `已识别为 ${routeFocusLabel}，先做「${routeFocusStep}」。`
+          : "课文页、阅读题、作文题、生字词，都能直接拍下来开始学。";
+  const heroMascotSpeech =
+    homePhase === "resume_session"
+      ? "从这一步接着来"
+      : homePhase === "open_review_focus"
+        ? "先稳稳复习一题"
+        : resumableJourneyInput
+          ? "我先带你做第一步"
+          : "不会的那页拍给我";
+  const capturePrimarySubtitle = resumableJourneyInput
+    ? "再拍新的一页，我继续安排下一条学习路线"
+    : "系统先识别内容，再安排孩子能开始的第一步";
+  const captureEntryHint = resumableJourneyInput
+    ? "拍照始终是主入口，刚拍下的一页会在下面自动续上"
+    : "拍照学习是整个产品的起点";
+  const journeyHeadline =
+    homePhase === "resume_session"
+      ? `继续第 ${step}/${Math.max(totalSteps, 1)} 步`
+      : homePhase === "open_review_focus"
+        ? "先做 1 题温和复习"
+        : resumableJourneyInput
+          ? `先做「${routeFocusStep}」`
+          : "先拍不会的这一页";
+  const journeyBody =
+    homePhase === "resume_session"
+      ? `${journeyLessonTitle} 已经接上了，学完这一轮会自动转到温和复习。`
+      : homePhase === "open_review_focus"
+        ? `${journeyLessonTitle} 刚学完，先用眼前这 1 题把它收住。`
+        : resumableJourneyInput
+          ? `${routeFocusLabel} · ${routeChallenge}`
+          : "课文页、阅读题、作文题、生字词，都能直接拍下来开始学。";
 
   const refreshing =
     progressQuery.isRefetching ||
@@ -162,13 +220,6 @@ export function HomeScreen({ navigation, route }: Props) {
     reviewQueueQuery.isRefetching ||
     settingsQuery.isRefetching;
 
-  const stageSupportTitle = latestInput ? "最近一次输入" : "可直接拍的内容";
-  const stageSupportSummary = latestInput
-    ? `${latestInput.routeLabel} · ${latestInput.recommendedEntryStep}`
-    : "不用先判断内容类型，拍下来就行。";
-  const stageSupportMeta = latestInput
-    ? `${getInputSourceLabel(latestInput.source)} · ${getRelativeInputTimeLabel(latestInput.createdAt)}`
-    : "教材、练习题、板书、图片都可以";
   const heroMinHeight = Math.max(540, Math.min(680, viewportHeight - insets.top - 108));
 
   useEffect(() => {
@@ -460,7 +511,7 @@ export function HomeScreen({ navigation, route }: Props) {
               },
             ]}
           >
-            <MascotBuddy state="teacher" size={62} speech="拍一页，交给我" />
+            <MascotBuddy state="teacher" size={62} speech={heroMascotSpeech} />
           </Animated.View>
 
           <View style={styles.heroTopRow}>
@@ -468,11 +519,9 @@ export function HomeScreen({ navigation, route }: Props) {
             <Text style={styles.meta}>{todayLabel}</Text>
           </View>
 
-          <Text style={styles.heroTitle}>拍一页，马上学</Text>
+          <Text style={styles.heroTitle}>{heroTitle}</Text>
           <Text style={styles.heroSubtitle} numberOfLines={2}>
-            {childProfile?.nickname
-              ? `${childProfile.nickname} 负责拍，我来按 ${childGradeLabel} 安排今天的学习路线。`
-              : "教材页、练习题、板书、图片都能直接拍。"}
+            {childProfile?.nickname ? `${childProfile.nickname}，${heroSubtitle}` : heroSubtitle}
           </Text>
 
           <View style={styles.heroMain}>
@@ -492,7 +541,7 @@ export function HomeScreen({ navigation, route }: Props) {
                   },
                 ]}
               >
-                <Text style={styles.captureCenterHint}>首页主功能</Text>
+                <Text style={styles.captureCenterHint}>主入口</Text>
                 <Pressable
                   hitSlop={8}
                   onPress={handleCameraStart}
@@ -510,18 +559,14 @@ export function HomeScreen({ navigation, route }: Props) {
                     </View>
                   </View>
                   <Text style={styles.capturePrimaryTitle}>拍一下</Text>
-                  <Text style={styles.capturePrimarySubtitle}>系统开始识别这一页</Text>
+                  <Text style={styles.capturePrimarySubtitle}>{capturePrimarySubtitle}</Text>
                 </Pressable>
-                <Text style={styles.captureCenterArrow}>拍照学习是整个产品的入口</Text>
+                <Text style={styles.captureCenterArrow}>{captureEntryHint}</Text>
               </Animated.View>
             </View>
 
             <HomeCaptureSupportPanel
               latestInput={latestInput}
-              stageSupportTitle={stageSupportTitle}
-              stageSupportMeta={stageSupportMeta}
-              stageSupportSummary={stageSupportSummary}
-              supportedInputLabels={supportedInputLabels}
               childGradeLabel={childGradeLabel}
               focusLabel={focusLabel}
               onUploadPress={openUploadChooser}
@@ -554,8 +599,8 @@ export function HomeScreen({ navigation, route }: Props) {
         <HomeJourneyCard
           statusLabel={homeJourney.statusLabel}
           statusTone={homeJourney.statusTone}
-          headline={homeJourney.headline}
-          body={homeJourney.body}
+          headline={journeyHeadline}
+          body={journeyBody}
           inputDone={homeJourney.inputDone}
           inputMeta={homeJourney.inputMeta}
           inputStatusLabel={homeJourney.inputStatusLabel}
@@ -645,13 +690,13 @@ const styles = StyleSheet.create({
   heroTitle: {
     ...textStyles.h1,
     color: colors.textPrimary,
-    fontSize: 34,
-    lineHeight: 40,
+    fontSize: 35,
+    lineHeight: 42,
   },
   heroSubtitle: {
     ...textStyles.caption,
     color: colors.textSecondary,
-    lineHeight: 22,
+    lineHeight: 21,
   },
   heroMain: {
     flex: 1,
@@ -672,8 +717,7 @@ const styles = StyleSheet.create({
     ...textStyles.meta,
     color: colors.primary600,
     fontSize: 13,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 0.2,
   },
   captureCenterArrow: {
     ...textStyles.caption,

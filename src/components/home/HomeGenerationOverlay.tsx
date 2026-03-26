@@ -160,12 +160,14 @@ export function HomeGenerationOverlay({
           })}
 
           <View style={styles.generationPreview}>
-            <Text style={styles.generationPreviewMeta}>马上会得到</Text>
-            <Text style={styles.generationPreviewTitle}>讲解 + 练习 + 温和复习</Text>
+            <Text style={styles.generationPreviewMeta}>这次先做</Text>
+            <Text style={styles.generationPreviewTitle}>
+              {activeInput ? activeInput.recommendedEntryStep : "先判断这页卡在哪里"}
+            </Text>
             <Text style={styles.generationPreviewText}>
               {activeInput
-                ? `${activeInput.routeLabel} · 第一动作为「${activeInput.recommendedEntryStep}」`
-                : "不需要再找课，不需要再整理题，路线排好后就能直接带孩子开始学。"}
+                ? `${activeInput.routeLabel} · ${activeInput.primaryChallenge}`
+                : "系统会先判断这页属于课文、阅读题、作文题还是字词页，再安排正确的第一步。"}
             </Text>
           </View>
         </Animated.View>

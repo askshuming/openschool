@@ -3,7 +3,11 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusChip } from "../StatusChip";
 import { colors, radius, spacing } from "../../design/tokens";
 import { textStyles } from "../../design/theme";
-import { ContentInputRecord } from "../../state/contentInputStore";
+import {
+  ContentInputRecord,
+  getContentTypeLabel,
+  getRelativeInputTimeLabel,
+} from "../../state/contentInputStore";
 
 type SupportActionIcon =
   | "play-circle-outline"
@@ -12,10 +16,6 @@ type SupportActionIcon =
 
 interface HomeCaptureSupportPanelProps {
   latestInput: ContentInputRecord | null;
-  stageSupportTitle: string;
-  stageSupportMeta: string;
-  stageSupportSummary: string;
-  supportedInputLabels: readonly string[];
   childGradeLabel: string;
   focusLabel: string;
   onUploadPress: () => void;
@@ -26,17 +26,42 @@ interface HomeCaptureSupportPanelProps {
   };
 }
 
+const routeScenarios = [
+  {
+    routeKind: "text_reading",
+    tag: "课文页",
+    title: "先读重点句",
+    body: "适合课文、生字和课后页",
+  },
+  {
+    routeKind: "reading_quiz",
+    tag: "阅读题",
+    title: "先圈题干关键词",
+    body: "适合阅读理解、练习题",
+  },
+  {
+    routeKind: "writing_prompt",
+    tag: "作文题",
+    title: "先看清要求",
+    body: "适合写话、作文、表达任务",
+  },
+  {
+    routeKind: "vocab_foundation",
+    tag: "字词页",
+    title: "先看懂字词",
+    body: "适合生字、词语、默写页",
+  },
+] as const;
+
 export function HomeCaptureSupportPanel({
   latestInput,
-  stageSupportTitle,
-  stageSupportMeta,
-  stageSupportSummary,
-  supportedInputLabels,
   childGradeLabel,
   focusLabel,
   onUploadPress,
   secondaryAction,
 }: HomeCaptureSupportPanelProps) {
+  const activeRouteKind = latestInput?.routeKind ?? null;
+
   return (
     <>
       <View style={styles.captureStage}>
@@ -44,65 +69,44 @@ export function HomeCaptureSupportPanel({
           <View style={styles.heroPromiseIcon}>
             <Ionicons name="sparkles-outline" size={16} color={colors.primary600} />
           </View>
-          <Text style={styles.heroPromiseText}>你拍，系统识别内容并匹配学习路线，不需要手动找课。</Text>
+          <Text style={styles.heroPromiseText}>孩子卡在哪一页，就拍哪一页。判断内容和排路线这件事交给系统。</Text>
         </View>
 
-        <View style={styles.captureInputCompact}>
-          <View style={styles.captureInputCompactIcon}>
-            <Ionicons
-              name={
-                latestInput
-                  ? latestInput.contentType === "pdf"
-                    ? "document-text-outline"
-                    : "scan-outline"
-                  : "layers-outline"
-              }
-              size={18}
-              color={colors.primary500}
-            />
+        <View style={styles.routeFocusCard}>
+          <View style={styles.routeFocusTop}>
+            <Text style={styles.routeFocusLabel}>{latestInput ? "这次先做什么" : "这些困难都能直接拍"}</Text>
+            {latestInput ? <StatusChip label={latestInput.routeLabel} tone="primary" /> : null}
           </View>
-          <View style={styles.captureInputCompactCopy}>
-            <Text style={styles.captureInputTitle} numberOfLines={1}>
-              {stageSupportTitle}
-            </Text>
-            <Text style={styles.captureInputMeta} numberOfLines={1}>
-              {stageSupportMeta}
-            </Text>
-            <Text style={styles.captureInputSummary} numberOfLines={1}>
-              {latestInput ? stageSupportSummary : "教材页、练习题、板书、图片都能直接拍。"}
-            </Text>
-          </View>
-          {latestInput ? (
-            <StatusChip label={`${latestInput.generatedTaskCount} 步`} tone="accent" />
-          ) : (
-            <View style={styles.captureInputChipRow}>
-              {supportedInputLabels.slice(0, 2).map((item) => (
-                <View key={item} style={styles.captureInputMiniChip}>
-                  <Text style={styles.captureInputMiniChipText}>{item}</Text>
+          <Text style={styles.routeFocusTitle}>
+            {latestInput ? `先做「${latestInput.recommendedEntryStep}」` : "不会的这一页，先拍下来"}
+          </Text>
+          <Text style={styles.routeFocusBody}>
+            {latestInput
+              ? `${getContentTypeLabel(latestInput.contentType)} · ${getRelativeInputTimeLabel(latestInput.createdAt)} · ${latestInput.primaryChallenge}`
+              : `${childGradeLabel} · ${focusLabel}优先，系统会先判断卡点，再安排正确的第一步。`}
+          </Text>
+        </View>
+
+        <View style={styles.routeGrid}>
+          {routeScenarios.map((item) => {
+            const active = item.routeKind === activeRouteKind;
+            return (
+              <View key={item.routeKind} style={[styles.routeTile, active && styles.routeTileActive]}>
+                <View style={styles.routeTileTop}>
+                  <Text style={[styles.routeTileTag, active && styles.routeTileTagActive]}>{item.tag}</Text>
+                  {active ? <StatusChip label="已匹配" tone="accent" /> : null}
                 </View>
-              ))}
-            </View>
-          )}
+                <Text style={[styles.routeTileTitle, active && styles.routeTileTitleActive]}>{item.title}</Text>
+                <Text style={styles.routeTileBody}>{item.body}</Text>
+              </View>
+            );
+          })}
         </View>
-      </View>
 
-      <View style={styles.captureOutcomeCard}>
-        <Text style={styles.captureOutcomeTitle}>拍完马上得到</Text>
-        <View style={styles.captureOutcomeInline}>
-          <View style={styles.captureOutcomeBadge}>
-            <Ionicons name="checkmark-circle" size={16} color={colors.primary600} />
-            <Text style={styles.captureOutcomeBadgeText}>讲解</Text>
-          </View>
-          <View style={styles.captureOutcomeBadge}>
-            <Ionicons name="checkmark-circle" size={16} color={colors.primary600} />
-            <Text style={styles.captureOutcomeBadgeText}>短练习</Text>
-          </View>
-          <View style={styles.captureOutcomeBadge}>
-            <Ionicons name="checkmark-circle" size={16} color={colors.primary600} />
-            <Text style={styles.captureOutcomeBadgeText}>温和复习</Text>
-          </View>
+        <View style={styles.captureOutcomeStrip}>
+          <Ionicons name="checkmark-circle" size={16} color={colors.primary600} />
+          <Text style={styles.captureOutcomeStripText}>拍完会自动接上：讲解、短练习、温和复习。</Text>
         </View>
-        <Text style={styles.captureOutcomeMeta}>按 {childGradeLabel} · {focusLabel} 自动适配</Text>
       </View>
 
       <View style={styles.captureAssistRow}>
@@ -128,12 +132,18 @@ export function HomeCaptureSupportPanel({
 }
 
 const styles = StyleSheet.create({
+  captureStage: {
+    gap: spacing.xs,
+    paddingHorizontal: spacing.xs,
+    borderRadius: radius.xl,
+    backgroundColor: "transparent",
+  },
   heroPromiseRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
     borderRadius: radius.md,
-    backgroundColor: "rgba(255,255,255,0.74)",
+    backgroundColor: "rgba(255,255,255,0.76)",
     borderWidth: 1,
     borderColor: colors.borderSoft,
     paddingHorizontal: spacing.sm,
@@ -153,119 +163,100 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     flex: 1,
   },
-  captureStage: {
-    gap: spacing.xs,
-    paddingHorizontal: spacing.xs,
-    borderRadius: radius.xl,
-    backgroundColor: "transparent",
-  },
-  captureInputCompact: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
+  routeFocusCard: {
     borderRadius: radius.lg,
     backgroundColor: "rgba(255,255,255,0.94)",
     borderWidth: 1,
-    borderColor: colors.borderSoft,
+    borderColor: colors.primary200,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+    gap: spacing.xs,
     shadowColor: colors.primary500,
-    shadowOpacity: 0.04,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 14,
-    elevation: 1,
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 16,
+    elevation: 2,
   },
-  captureInputCompactIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary50,
-    borderWidth: 1,
-    borderColor: colors.primary100,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  captureInputCompactCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  captureInputTitle: {
-    ...textStyles.title,
-    color: colors.primary600,
-    fontSize: 16,
-  },
-  captureInputMeta: {
-    ...textStyles.caption,
-    color: colors.textTertiary,
-  },
-  captureInputChipRow: {
+  routeFocusTop: {
     flexDirection: "row",
     alignItems: "center",
-    flexWrap: "wrap",
-    gap: spacing.xs,
+    justifyContent: "space-between",
+    gap: spacing.sm,
   },
-  captureInputMiniChip: {
-    borderRadius: radius.pill,
-    backgroundColor: colors.primary50,
-    borderWidth: 1,
-    borderColor: colors.primary200,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-  },
-  captureInputMiniChipText: {
+  routeFocusLabel: {
     ...textStyles.meta,
     color: colors.primary600,
   },
-  captureInputSummary: {
+  routeFocusTitle: {
+    ...textStyles.title,
+    color: colors.textPrimary,
+    fontSize: 19,
+  },
+  routeFocusBody: {
+    ...textStyles.caption,
+    color: colors.textSecondary,
+    lineHeight: 19,
+  },
+  routeGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.xs,
+  },
+  routeTile: {
+    width: "48.5%",
+    minHeight: 92,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    backgroundColor: "rgba(255,255,255,0.82)",
+    padding: spacing.sm,
+    gap: spacing.xxs,
+  },
+  routeTileActive: {
+    backgroundColor: colors.primary50,
+    borderColor: colors.primary300,
+  },
+  routeTileTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.xs,
+  },
+  routeTileTag: {
+    ...textStyles.meta,
+    color: colors.primary600,
+  },
+  routeTileTagActive: {
+    color: colors.primary700,
+  },
+  routeTileTitle: {
+    ...textStyles.body,
+    color: colors.textPrimary,
+    fontWeight: "600",
+  },
+  routeTileTitleActive: {
+    color: colors.primary700,
+  },
+  routeTileBody: {
     ...textStyles.caption,
     color: colors.textSecondary,
     lineHeight: 18,
   },
-  captureOutcomeCard: {
-    alignSelf: "center",
-    width: "100%",
-    borderRadius: radius.lg,
-    backgroundColor: "rgba(255,255,255,0.8)",
+  captureOutcomeStrip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    borderRadius: radius.md,
+    backgroundColor: "rgba(255,255,255,0.7)",
     borderWidth: 1,
     borderColor: colors.borderSoft,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
-    gap: spacing.xs,
-    shadowColor: colors.primary500,
-    shadowOpacity: 0.03,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
-    elevation: 1,
   },
-  captureOutcomeTitle: {
-    ...textStyles.meta,
-    color: colors.primary600,
-    fontSize: 13,
-  },
-  captureOutcomeInline: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: spacing.xs,
-  },
-  captureOutcomeBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    borderRadius: radius.pill,
-    backgroundColor: colors.primary50,
-    borderWidth: 1,
-    borderColor: colors.primary200,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  captureOutcomeBadgeText: {
-    ...textStyles.meta,
-    color: colors.textPrimary,
-  },
-  captureOutcomeMeta: {
+  captureOutcomeStripText: {
     ...textStyles.caption,
     color: colors.textSecondary,
+    flex: 1,
   },
   captureAssistRow: {
     flexDirection: "row",

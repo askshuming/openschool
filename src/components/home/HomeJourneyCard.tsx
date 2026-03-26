@@ -54,8 +54,9 @@ export function HomeJourneyCard({
         <StatusChip label={statusLabel} tone={statusTone} />
       </View>
       <View style={styles.focusCard}>
-        <Text style={styles.bodyText}>{headline}</Text>
-        <Text style={styles.leadText}>{body}</Text>
+        <Text style={styles.focusLabel}>现在先做</Text>
+        <Text style={styles.focusTitle}>{headline}</Text>
+        <Text style={styles.focusBody}>{body}</Text>
       </View>
 
       <View style={styles.track}>
@@ -106,12 +107,22 @@ const styles = StyleSheet.create({
   },
   focusCard: {
     gap: spacing.xxs,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    backgroundColor: colors.primary50,
+    borderWidth: 1,
+    borderColor: colors.primary200,
   },
-  bodyText: {
-    ...textStyles.body,
-    color: colors.textSecondary,
+  focusLabel: {
+    ...textStyles.meta,
+    color: colors.primary600,
   },
-  leadText: {
+  focusTitle: {
+    ...textStyles.title,
+    color: colors.textPrimary,
+    fontSize: 20,
+  },
+  focusBody: {
     ...textStyles.caption,
     color: colors.textSecondary,
     lineHeight: 20,
