@@ -1,4 +1,5 @@
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import { AppButton } from "../AppButton";
 import { AppCard } from "../AppCard";
 import { MascotBuddy } from "../MascotBuddy";
 import { StatusChip } from "../StatusChip";
@@ -8,12 +9,15 @@ import { textStyles } from "../../design/theme";
 export interface ReviewCompletionSummary {
   mode: "single" | "batch";
   completedCount: number;
+  remainingPendingCount: number;
   createdAt: string;
 }
 
 interface ReviewCompletionCardProps {
   summary: ReviewCompletionSummary;
   summaryAnim: Animated.Value;
+  primaryActionLabel: string;
+  onPrimaryAction: () => void;
   onDismiss: () => void;
   onBackHome: () => void;
 }
@@ -21,9 +25,24 @@ interface ReviewCompletionCardProps {
 export function ReviewCompletionCard({
   summary,
   summaryAnim,
+  primaryActionLabel,
+  onPrimaryAction,
   onDismiss,
   onBackHome,
 }: ReviewCompletionCardProps) {
+  const title =
+    summary.remainingPendingCount > 0
+      ? "这一轮已经收住了"
+      : "这次复习已经收好了";
+  const body =
+    summary.mode === "batch"
+      ? summary.remainingPendingCount > 0
+        ? `刚刚已经稳稳复习了 ${summary.completedCount} 题，今天还剩 ${summary.remainingPendingCount} 题。`
+        : `刚刚已经稳稳复习了 ${summary.completedCount} 题，今天的复习先到这里。`
+      : summary.remainingPendingCount > 0
+        ? `这一题已经复习稳了，今天还剩 ${summary.remainingPendingCount} 题可继续收。`
+        : "这一题已经复习稳了，今天的复习先到这里。";
+
   return (
     <Animated.View
       style={[
@@ -43,23 +62,26 @@ export function ReviewCompletionCard({
     >
       <AppCard style={[styles.card, styles.summaryCard]}>
         <View style={styles.summaryCardInner}>
-          <MascotBuddy state="happy" size={88} speech={summary.mode === "batch" ? "今天的复习先收到这里" : "这题已经复习稳了"} />
+          <MascotBuddy
+            state="happy"
+            size={88}
+            speech={summary.remainingPendingCount > 0 ? "还可以再稳一题" : "今天的复习先收好了"}
+          />
           <View style={styles.summaryCopy}>
             <View style={styles.rowTop}>
-              <Text style={textStyles.title}>这次复习收住了</Text>
+              <Text style={textStyles.title}>{title}</Text>
               <StatusChip tone="accent" label="已达成" />
             </View>
-            <Text style={styles.body}>
-              {summary.mode === "batch" ? `今天已经稳稳复习了 ${summary.completedCount} 题。` : "这一题已经稳稳复习完了。"}
-            </Text>
+            <Text style={styles.body}>{body}</Text>
           </View>
+        </View>
+        <View style={styles.ctaWrap}>
+          <AppButton label={primaryActionLabel} onPress={onPrimaryAction} />
+          <AppButton label="回首页拍新内容" onPress={onBackHome} variant="secondary" />
         </View>
         <View style={styles.actionRow}>
           <Pressable hitSlop={8} onPress={onDismiss}>
             <Text style={styles.link}>收起提示</Text>
-          </Pressable>
-          <Pressable hitSlop={8} onPress={onBackHome}>
-            <Text style={styles.link}>回首页拍新内容</Text>
           </Pressable>
         </View>
       </AppCard>
@@ -99,8 +121,11 @@ const styles = StyleSheet.create({
   },
   actionRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
     alignItems: "center",
+  },
+  ctaWrap: {
+    gap: spacing.xs,
   },
   link: {
     ...textStyles.meta,

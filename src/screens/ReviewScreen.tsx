@@ -231,6 +231,13 @@ export function ReviewScreen({ navigation, route }: Props) {
 
     const completedMode = practiceMode === "batch" ? "batch" : "single";
     const completedAt = new Date().toISOString();
+    const remainingPendingCount =
+      completedMode === "batch"
+        ? Math.max(
+            0,
+            todayPendingItems.filter((item) => !practiceItems.some((doneItem) => doneItem.id === item.id)).length,
+          )
+        : Math.max(0, todayPendingItems.filter((item) => item.id !== currentPracticeItem.id).length);
     trackEvent("review_completed", {
       mode: completedMode,
       completedCount: practiceItems.length,
@@ -244,6 +251,7 @@ export function ReviewScreen({ navigation, route }: Props) {
     setCompletionSummary({
       mode: completedMode,
       completedCount: practiceItems.length,
+      remainingPendingCount,
       createdAt: completedAt,
     });
     summaryAnim.setValue(0);
@@ -261,6 +269,17 @@ export function ReviewScreen({ navigation, route }: Props) {
       setTab("done");
     }
     setShowQueueDetails(true);
+  }
+
+  function continueAfterCompletion() {
+    const nextItem = (reviewQueueQuery.data?.items ?? []).find((item) => item.status === "pending") ?? null;
+    setCompletionSummary(null);
+    if (nextItem) {
+      setTab("today");
+      startSinglePractice(nextItem);
+      return;
+    }
+    navigation.navigate("Home");
   }
 
   function navigateHomeAfterCompletion(summary: ReviewCompletionSummary) {
@@ -371,6 +390,12 @@ export function ReviewScreen({ navigation, route }: Props) {
         <ReviewCompletionCard
           summary={completionSummary}
           summaryAnim={summaryAnim}
+          primaryActionLabel={
+            completionSummary.remainingPendingCount > 0
+              ? `再收下一题（还剩 ${completionSummary.remainingPendingCount} 题）`
+              : "今天先收好"
+          }
+          onPrimaryAction={continueAfterCompletion}
           onDismiss={() => setCompletionSummary(null)}
           onBackHome={() => navigateHomeAfterCompletion(completionSummary)}
         />
