@@ -33,6 +33,16 @@ export function LearningFlowCard({
   readingLevelHint,
   currentStrategy,
 }: LearningFlowCardProps) {
+  const collapsedHeadline = latestInput
+    ? `先做「${latestInput.recommendedEntryStep}」`
+    : `先学「${currentCardTitle}」`;
+  const collapsedMeta = latestInput
+    ? `${latestInput.routeLabel} · 当前在学「${currentCardTitle}」`
+    : `当前在学「${currentCardTitle}」`;
+  const expandedTitle = childNickname
+    ? `${childNickname} 的${latestInput?.routeLabel ?? "当前学习路线"}`
+    : latestInput?.routeLabel ?? "当前学习路线";
+
   return (
     <AppCard style={styles.flowCard}>
       <Pressable
@@ -50,21 +60,15 @@ export function LearningFlowCard({
                 <StatusChip label={generationSourceLabel} tone="primary" />
                 <StatusChip label={`${currentVisibleStep}/${visibleTotalSteps}`} tone="accent" />
               </View>
-              <Text style={styles.flowTitle}>
-                {childNickname
-                  ? `${childNickname} 的${latestInput?.routeLabel ?? "当前学习路线"}已收好`
-                  : latestInput?.routeLabel
-                    ? `${latestInput.routeLabel}已收好`
-                    : "当前学习路线已收好"}
-              </Text>
+              <Text style={styles.flowTitle}>{expandedTitle}</Text>
               <Text style={styles.flowText}>
                 {latestInput
-                  ? `基于「${latestInput.title}」已安排，先做「${latestInput.recommendedEntryStep}」，当前直接学「${currentCardTitle}」。`
-                  : `当前直接学「${currentCardTitle}」，其他路线说明已收起。`}
+                  ? `基于「${latestInput.title}」已安排。先做「${latestInput.recommendedEntryStep}」，再进入「${currentCardTitle}」。`
+                  : `当前先学「${currentCardTitle}」，其他路线说明默认收起。`}
               </Text>
             </View>
             <View style={styles.flowToggle}>
-              <Text style={styles.flowToggleText}>收起</Text>
+              <Text style={styles.flowToggleText}>收起路线</Text>
               <Ionicons name="chevron-up-outline" size={18} color={colors.primary500} />
             </View>
           </>
@@ -72,16 +76,18 @@ export function LearningFlowCard({
           <>
             <View style={styles.flowCollapsedCopy}>
               <StatusChip label={`${currentVisibleStep}/${visibleTotalSteps}`} tone="accent" />
+              {latestInput?.routeLabel ? <StatusChip label={latestInput.routeLabel} tone="primary" /> : null}
+            </View>
+            <View style={styles.flowCollapsedBody}>
+              <Text style={styles.flowCollapsedTitle} numberOfLines={1}>
+                {collapsedHeadline}
+              </Text>
               <Text style={styles.flowCollapsedText} numberOfLines={1}>
-                {childNickname
-                  ? `已为${childNickname}排好${latestInput?.routeLabel ?? "当前学习路线"}`
-                  : latestInput?.routeLabel
-                    ? `已排好${latestInput.routeLabel}`
-                    : "当前学习路线已收好"}
+                {collapsedMeta}
               </Text>
             </View>
             <View style={styles.flowToggleInline}>
-              <Text style={styles.flowToggleText}>展开</Text>
+              <Text style={styles.flowToggleText}>看路线</Text>
               <Ionicons name="chevron-down-outline" size={18} color={colors.primary500} />
             </View>
           </>
@@ -90,6 +96,32 @@ export function LearningFlowCard({
 
       {showDetails ? (
         <View style={styles.flowDetails}>
+          <View style={styles.flowReasonCard}>
+            <Text style={styles.flowReasonLabel}>这次为什么先学这一步</Text>
+            <Text style={styles.flowReasonText}>
+              {latestInput
+                ? `${latestInput.primaryChallenge}。所以先做「${latestInput.recommendedEntryStep}」，当前正在学「${currentCardTitle}」。`
+                : `${focusLabel}优先 · ${readingLevelHint} · ${currentStrategy}`}
+            </Text>
+          </View>
+
+          {latestInput ? (
+            <View style={styles.flowInfoGrid}>
+              <View style={styles.flowInfoCell}>
+                <Text style={styles.flowInfoLabel}>这次输入</Text>
+                <Text style={styles.flowInfoValue} numberOfLines={1}>
+                  {latestInput.title}
+                </Text>
+              </View>
+              <View style={styles.flowInfoCell}>
+                <Text style={styles.flowInfoLabel}>当前第一步</Text>
+                <Text style={styles.flowInfoValue} numberOfLines={1}>
+                  {latestInput.recommendedEntryStep}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+
           {latestInput ? (
             <View style={styles.generatedSourceCard}>
               <View style={styles.generatedSourcePreviewWrap}>
@@ -126,14 +158,6 @@ export function LearningFlowCard({
               </View>
             </View>
           ) : null}
-          <View style={styles.flowReasonCard}>
-            <Text style={styles.flowReasonLabel}>为什么先学这一步</Text>
-            <Text style={styles.flowReasonText}>
-              {latestInput
-                ? `${latestInput.routeLabel} · ${latestInput.primaryChallenge} · ${latestInput.recommendedEntryStep} · ${currentStrategy}`
-                : `${focusLabel}优先 · ${readingLevelHint} · ${currentStrategy}`}
-            </Text>
-          </View>
         </View>
       ) : null}
     </AppCard>
@@ -154,9 +178,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   flowSummaryCollapsed: {
-    minHeight: 44,
+    minHeight: 52,
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
     gap: spacing.sm,
   },
@@ -190,24 +214,53 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 2,
+    paddingTop: 2,
   },
   flowToggleText: {
     ...textStyles.meta,
     color: colors.primary500,
   },
   flowCollapsedCopy: {
-    flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    flexWrap: "wrap",
     gap: spacing.sm,
   },
-  flowCollapsedText: {
-    ...textStyles.meta,
-    color: colors.textSecondary,
+  flowCollapsedBody: {
     flex: 1,
+    gap: 2,
+  },
+  flowCollapsedTitle: {
+    ...textStyles.meta,
+    color: colors.textPrimary,
+  },
+  flowCollapsedText: {
+    ...textStyles.caption,
+    color: colors.textSecondary,
   },
   flowDetails: {
     gap: spacing.sm,
+  },
+  flowInfoGrid: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  flowInfoCell: {
+    flex: 1,
+    borderRadius: radius.md,
+    backgroundColor: colors.primary50,
+    borderWidth: 1,
+    borderColor: colors.primary200,
+    padding: spacing.sm,
+    gap: spacing.xxs,
+  },
+  flowInfoLabel: {
+    ...textStyles.meta,
+    color: colors.primary600,
+  },
+  flowInfoValue: {
+    ...textStyles.body,
+    color: colors.textPrimary,
   },
   generatedSourceCard: {
     flexDirection: "row",
@@ -264,11 +317,11 @@ const styles = StyleSheet.create({
   },
   flowReasonCard: {
     borderRadius: radius.md,
-    backgroundColor: "rgba(255,255,255,0.7)",
+    backgroundColor: colors.primary50,
     borderWidth: 1,
-    borderColor: colors.borderSoft,
+    borderColor: colors.primary200,
     padding: spacing.sm,
-    gap: spacing.xxs,
+    gap: spacing.xs,
   },
   flowReasonLabel: {
     ...textStyles.meta,
@@ -277,5 +330,6 @@ const styles = StyleSheet.create({
   flowReasonText: {
     ...textStyles.caption,
     color: colors.textSecondary,
+    lineHeight: 20,
   },
 });

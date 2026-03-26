@@ -69,7 +69,7 @@ export function LearningActionDock({
 
         {isQuiz && !showQuizRetryActions ? (
           <AppButton
-            label={answerPending ? "提交中..." : "提交答案"}
+            label={answerPending ? "提交中..." : "选好了，提交"}
             onPress={onSubmitAnswer}
             disabled={selectedOption == null || answerPending}
           />
@@ -98,18 +98,18 @@ export function LearningActionDock({
         ) : null}
 
         {canGoNext && !isLast && !showQuizRetryActions && !showRecitationRetryActions ? (
-          <AppButton label="下一步" onPress={onNext} />
+          <AppButton label="继续下一步" onPress={onNext} />
         ) : null}
 
-        {isLast ? <AppButton label="完成学习，返回首页" onPress={onComplete} /> : null}
+        {isLast ? <AppButton label="学完这节，回首页" onPress={onComplete} /> : null}
 
         <View style={[styles.restartRow, !showRestart && styles.restartRowSingleAction]}>
           <Pressable hitSlop={8} onPress={onPause}>
-            <Text style={styles.pauseText}>稍后继续</Text>
+            <Text style={styles.pauseText}>回首页，稍后继续</Text>
           </Pressable>
           {showRestart ? (
             <Pressable hitSlop={8} onPress={onRestart}>
-              <Text style={styles.restartText}>重新开始本课</Text>
+              <Text style={styles.restartText}>重新学这一节</Text>
             </Pressable>
           ) : null}
         </View>

@@ -105,7 +105,15 @@ export function LearningStepCard({
             </View>
           </View>
         ) : null}
-        <Text style={textStyles.title}>{card.payload.title}</Text>
+        <View style={styles.stepFocusBlock}>
+          <Text style={styles.stepFocusLabel}>这一小步</Text>
+          <Text style={styles.stepFocusTitle}>{card.payload.title}</Text>
+          {latestInputTitle ? (
+            <Text style={styles.stepFocusMeta} numberOfLines={1}>
+              {`基于「${latestInputTitle}」`}
+            </Text>
+          ) : null}
+        </View>
         <LearningCardBody
           card={card}
           selectedOption={selectedOption}
@@ -169,5 +177,22 @@ const styles = StyleSheet.create({
     ...textStyles.body,
     color: colors.textSecondary,
     lineHeight: 22,
+  },
+  stepFocusBlock: {
+    gap: spacing.xxs,
+  },
+  stepFocusLabel: {
+    ...textStyles.meta,
+    color: colors.primary600,
+  },
+  stepFocusTitle: {
+    ...textStyles.title,
+    color: colors.textPrimary,
+    fontSize: 22,
+    lineHeight: 28,
+  },
+  stepFocusMeta: {
+    ...textStyles.caption,
+    color: colors.textTertiary,
   },
 });

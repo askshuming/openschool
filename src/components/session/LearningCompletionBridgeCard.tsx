@@ -8,11 +8,11 @@ export function LearningCompletionBridgeCard() {
   return (
     <AppCard style={styles.card}>
       <View style={styles.rowTop}>
-        <Text style={styles.title}>完成后系统会自动接上下一步</Text>
+        <Text style={styles.title}>学完这节，首页会自动接上下一步</Text>
         <StatusChip label="自动续上" tone="primary" />
       </View>
       <Text style={styles.text}>
-        这节学习结束后，首页主线会切到这次内容，方便明天继续看进度或直接进入温和复习。
+        不用手动找下一课。回到首页后，这次内容会自动进入主线，接着安排温和复习。
       </Text>
     </AppCard>
   );

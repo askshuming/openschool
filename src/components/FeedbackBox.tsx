@@ -14,7 +14,7 @@ interface FeedbackBoxProps {
 export function FeedbackBox({ isCorrect, message, evidence }: FeedbackBoxProps) {
   const iconName = isCorrect ? "checkmark-circle" : "bulb";
   const mascotState = isCorrect ? "happy" : "encourage";
-  const statusLabel = isCorrect ? "答对啦" : "继续加油";
+  const statusLabel = isCorrect ? "学会了" : "我陪你";
   const stateLabel = isCorrect ? "开心反馈" : "鼓励反馈";
 
   return (
@@ -33,7 +33,7 @@ export function FeedbackBox({ isCorrect, message, evidence }: FeedbackBoxProps) 
                 size={20}
                 color={isCorrect ? colors.success : colors.warning}
               />
-              <Text style={styles.titleText}>{isCorrect ? "回答不错" : "再试一次"}</Text>
+              <Text style={styles.titleText}>{isCorrect ? "这一步做对了" : "这一步先别急"}</Text>
             </View>
             <View style={styles.chipRow}>
               <StatusChip label={statusLabel} tone={isCorrect ? "accent" : "primary"} />

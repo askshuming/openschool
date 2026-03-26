@@ -553,25 +553,49 @@ export function LearningSessionScreen({ navigation, route }: Props) {
     : isRecitation
       ? Boolean(recitationDone && recitationAssessment?.isCorrect)
       : true;
-  const actionDockStatusLabel = isLast ? "最后一步" : `${currentVisibleStep}/${visibleTotalSteps}`;
-  const actionDockTitle = showQuizRetryActions
-    ? "做错没关系，再试一次会更稳"
+  const actionDockStatusLabel = showQuizRetryActions
+    ? "再试一次"
     : showRecitationRetryActions
-      ? "再读一遍就更顺了"
+      ? "再读一次"
+      : isQuiz && answerResult?.correct
+        ? "答对啦"
+        : isRecitation && recitationDone && recitationAssessment?.isCorrect
+          ? "读得不错"
+          : isLast
+            ? "最后一步"
+            : `${currentVisibleStep}/${visibleTotalSteps}`;
+  const actionDockTitle = showQuizRetryActions
+    ? "这一步先别急，我陪你再做一遍"
+    : showRecitationRetryActions
+      ? "再读一遍，就会更顺"
       : isLast
-        ? "收好这节学习，系统会自动接上下一步"
+        ? "这节已经学完，回首页就能接上复习"
         : isQuiz && !answerResult
-          ? "选好一个答案就提交"
+          ? "先选一个答案，再点提交"
+          : isQuiz && answerResult?.correct
+            ? "这一步做对了，继续下一步"
           : isRecitation
-            ? recitationDone
-              ? "这次朗读已经完成，可以继续"
-              : "先听示范，再开口读一遍"
-            : "完成这一小步，我会继续带着往下学";
-  const actionDockMeta = showQuizRetryActions || showRecitationRetryActions
-    ? card.payload.title
-    : isLast
-      ? "结束后会回到首页主线，明天还能从这里续上。"
-      : `当前正在学：${card.payload.title}`;
+            ? recitationRecognizing
+              ? "读完这一遍，我用 Apple 语音识别帮你判断"
+              : recitationDone
+                ? "这次跟读已经完成，可以继续"
+                : "先听示范，再开口读一遍"
+            : "完成这一小步，我继续带你往下学";
+  const actionDockMeta = showQuizRetryActions
+    ? "看一下上面的鼓励提示，再选一次就行。"
+    : showRecitationRetryActions
+      ? "先听一遍示范，再完整读一遍。"
+      : isLast
+        ? "学完后首页主线会自动切到这次内容的温和复习。"
+        : isQuiz && answerResult?.correct
+          ? "可以直接进入下一步。"
+          : isRecitation
+            ? recitationRecognizing
+              ? "结束跟读后会自动给出识别结果。"
+              : recitationDone
+                ? "朗读结果已经收到，可以继续。"
+                : "支持 Apple 语音识别。"
+            : `当前正在学：${card.payload.title}`;
 
   return (
     <View style={layoutStyles.screen}>

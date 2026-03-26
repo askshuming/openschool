@@ -37,9 +37,9 @@ export function useRecitationController({
   const recitationSupportText = useMemo(() => {
     return isSpeechRecognitionSupported()
       ? isSpeechRecognitionAvailable()
-        ? "原生语音识别已就绪"
-        : "当前设备暂时不可用语音识别"
-      : "当前预览环境不支持原生语音识别";
+        ? "Apple 语音识别已就绪"
+        : "当前设备暂时不可用 Apple 语音识别"
+      : "当前预览环境不支持 Apple 语音识别";
   }, []);
 
   const showRecitationPreviewFallback = useMemo(
@@ -135,12 +135,12 @@ export function useRecitationController({
     }
 
     if (!isSpeechRecognitionSupported()) {
-      setRecitationError("当前预览环境不支持原生语音识别。请使用 iOS 开发版或真机预览。");
+      setRecitationError("当前预览环境不支持 Apple 语音识别。请使用 iOS 开发版或真机预览。");
       return;
     }
 
     if (!isSpeechRecognitionAvailable()) {
-      setRecitationError("当前设备暂时不能使用语音识别，请检查 Siri 与听写是否已开启。");
+      setRecitationError("当前设备暂时不能使用 Apple 语音识别，请检查 Siri 与听写是否已开启。");
       return;
     }
 
@@ -172,7 +172,7 @@ export function useRecitationController({
       ],
     });
     if (!started) {
-      setRecitationError("当前环境还没有接入原生语音识别，请切换到 iOS 开发版再试。");
+      setRecitationError("当前环境还没有接入 Apple 语音识别，请切换到 iOS 开发版再试。");
     }
   }
 
