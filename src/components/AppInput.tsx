@@ -8,6 +8,7 @@ interface AppInputProps {
   onChangeText: (text: string) => void;
   placeholder?: string;
   keyboardType?: "default" | "email-address" | "number-pad";
+  autoFocus?: boolean;
 }
 
 export function AppInput({
@@ -16,6 +17,7 @@ export function AppInput({
   onChangeText,
   placeholder,
   keyboardType = "default",
+  autoFocus = false,
 }: AppInputProps) {
   return (
     <View style={styles.wrap}>
@@ -27,6 +29,7 @@ export function AppInput({
         keyboardType={keyboardType}
         style={styles.input}
         placeholderTextColor={colors.textTertiary}
+        autoFocus={autoFocus}
       />
     </View>
   );

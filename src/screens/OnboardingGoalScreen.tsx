@@ -25,9 +25,15 @@ export function OnboardingGoalScreen({ navigation, route }: Props) {
   return (
     <OnboardingScaffold
       step="第 2/4 步"
-      title="先提升哪方面能力？"
-      subtitle="先选一个最想提升的方向，后续可在家长页调整。"
+      stepIndex={2}
+      title="先提升哪方面能力"
+      subtitle="先选一个现在最想改善的方向，后面拍照会优先按这个目标安排路线。"
       icon="bulb-outline"
+      mascotState="wow"
+      mascotSpeech="先定方向，我会把每一页先带到最关键的第一步。"
+      highlights={["先选一个最想提升的", "后面随时能调整"]}
+      cardTitle="这段时间更想先改善"
+      cardSubtitle="不用全选。先抓一个方向，体验会更清楚。"
     >
       <View style={styles.list}>
         {goals.map((item) => (
@@ -49,7 +55,10 @@ export function OnboardingGoalScreen({ navigation, route }: Props) {
               <Text style={styles.optionTitle}>{item.label}</Text>
               <Text style={styles.optionDesc}>{item.desc}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.primary500} />
+            <View style={styles.trailingWrap}>
+              <Text style={styles.trailingText}>先提升</Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.primary500} />
+            </View>
           </Pressable>
         ))}
       </View>
@@ -62,24 +71,25 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   optionRow: {
-    minHeight: 72,
+    minHeight: 82,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.borderLight,
-    backgroundColor: colors.bgElevated,
+    backgroundColor: colors.bgCard,
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    paddingVertical: spacing.sm,
     alignItems: "center",
     flexDirection: "row",
     gap: spacing.sm,
   },
   optionPressed: {
     opacity: 0.88,
+    transform: [{ scale: 0.985 }],
   },
   iconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: colors.primary100,
     borderWidth: 1,
     borderColor: colors.primary200,
@@ -96,5 +106,18 @@ const styles = StyleSheet.create({
   optionDesc: {
     ...textStyles.caption,
     color: colors.textSecondary,
+  },
+  trailingWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xxs,
+    minHeight: 28,
+    paddingHorizontal: spacing.xs,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary50,
+  },
+  trailingText: {
+    ...textStyles.meta,
+    color: colors.primary600,
   },
 });

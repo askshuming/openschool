@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { OnboardingScaffold } from "../components/OnboardingScaffold";
@@ -25,9 +26,15 @@ export function OnboardingGradeScreen({ navigation }: Props) {
   return (
     <OnboardingScaffold
       step="第 1/4 步"
-      title="孩子当前年级是？"
-      subtitle="选择后会自动匹配更合适的学习内容难度。"
+      stepIndex={1}
+      title="先选孩子的年级"
+      subtitle="拍下来的内容会先按年级匹配难度，再安排更合适的语文学习路线。"
       icon="school-outline"
+      mascotState="teacher"
+      mascotSpeech="先把难度调对，后面拍一页就能直接开始。"
+      highlights={["一年级到六年级", "后面都能再改"]}
+      cardTitle="孩子现在在读"
+      cardSubtitle="先选一个年级，系统会按这档标准安排起步难度。"
     >
       <View style={styles.grid}>
         {gradeOptions.map((item) => (
@@ -37,8 +44,15 @@ export function OnboardingGradeScreen({ navigation }: Props) {
             onPress={() => navigation.navigate("OnboardingGoal", { grade: item.key })}
             style={({ pressed }) => [styles.optionCard, pressed && styles.optionCardPressed]}
           >
+            <View style={styles.optionTop}>
+              <View style={styles.optionBadge}>
+                <Text style={styles.optionBadgeText}>{item.key.replace("G", "")} 年级</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.primary500} />
+            </View>
             <Text style={styles.optionTitle}>{item.label}</Text>
             <Text style={styles.optionHint}>{item.hint}</Text>
+            <Text style={styles.optionMeta}>拍照后先按这一档语文难度开始</Text>
           </Pressable>
         ))}
       </View>
@@ -54,24 +68,48 @@ const styles = StyleSheet.create({
   },
   optionCard: {
     width: "48%",
-    minHeight: 88,
+    minHeight: 132,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.borderLight,
-    backgroundColor: colors.bgElevated,
+    backgroundColor: colors.bgCard,
     padding: spacing.sm,
     justifyContent: "space-between",
-    gap: spacing.xxs,
+    gap: spacing.xs,
   },
   optionCardPressed: {
     opacity: 0.88,
+    transform: [{ scale: 0.985 }],
+  },
+  optionTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  optionBadge: {
+    minHeight: 28,
+    paddingHorizontal: spacing.xs,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary100,
+    borderWidth: 1,
+    borderColor: colors.primary200,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  optionBadgeText: {
+    ...textStyles.meta,
+    color: colors.primary600,
   },
   optionTitle: {
     ...textStyles.title,
     color: colors.textPrimary,
   },
   optionHint: {
-    ...textStyles.caption,
+    ...textStyles.body,
     color: colors.textSecondary,
+  },
+  optionMeta: {
+    ...textStyles.caption,
+    color: colors.textTertiary,
   },
 });
