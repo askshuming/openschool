@@ -87,8 +87,8 @@ export function HomeGenerationOverlay({
           </View>
           <Text style={styles.generationLead}>
             {activeInput
-              ? `${sourceLabel}已收到「${activeInput.title}」，马上会直接进入「${activeInput.recommendedEntryStep}」。`
-              : "这一页已经收到，马上会直接进入最该开始的第一步。"}
+              ? `${sourceLabel}已收到「${activeInput.title}」，先从「${activeInput.recommendedEntryStep}」开始。`
+              : "这一页已经收到，马上先从最该开始的第一步进入。"}
           </Text>
 
           {activeInput ? (
@@ -160,14 +160,14 @@ export function HomeGenerationOverlay({
           })}
 
           <View style={styles.generationPreview}>
-            <Text style={styles.generationPreviewMeta}>马上先做这一小步</Text>
+            <Text style={styles.generationPreviewMeta}>马上先做</Text>
             <Text style={styles.generationPreviewTitle}>
               {activeInput ? activeInput.recommendedEntryStep : "先判断这页卡在哪里"}
             </Text>
             <Text style={styles.generationPreviewText}>
               {activeInput
-                ? `${activeInput.primaryChallenge} · 后面的短练习和温和复习会自动接上`
-                : "系统会先看清这一页，再安排正确的第一步。"}
+                ? `${activeInput.primaryChallenge} · 后面的短练习和温和复习会接上`
+                : "会先看清这一页，再安排正确的第一步。"}
             </Text>
           </View>
         </Animated.View>

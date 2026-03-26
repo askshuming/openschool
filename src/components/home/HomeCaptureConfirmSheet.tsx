@@ -34,9 +34,7 @@ export function HomeCaptureConfirmSheet({
         <View style={styles.sheet}>
           <View style={styles.handle} />
           <Text style={styles.title}>拍好了，就从这一页开始</Text>
-          <Text style={styles.subtitle}>
-            只要这页没拍错，下面直接开始。不用先判断题型，也不用自己决定先学什么。
-          </Text>
+          <Text style={styles.subtitle}>只要这页没拍错，下面就直接开始。不用自己判断题型。</Text>
 
           {previewInput ? (
             <View style={styles.previewCard}>
@@ -62,7 +60,7 @@ export function HomeCaptureConfirmSheet({
                   {previewInput.fileSize ? ` · ${getReadableFileSizeLabel(previewInput.fileSize)}` : ""}
                 </Text>
                 <Text style={styles.previewBody} numberOfLines={2}>
-                  系统会先带孩子做「{previewInput.recommendedEntryStep}」，后面的短练习和温和复习会自动接上。
+                  先做「{previewInput.recommendedEntryStep}」，后面的短练习和温和复习会自动接上。
                 </Text>
               </View>
             </View>
@@ -75,7 +73,7 @@ export function HomeCaptureConfirmSheet({
             </View>
             <View style={styles.checkItem}>
               <Ionicons name="checkmark-circle" size={18} color={colors.primary600} />
-              <Text style={styles.checkText}>进入后会直接从孩子现在最该开始的第一步学起</Text>
+              <Text style={styles.checkText}>进入后会直接从这页最该开始的第一步学起</Text>
             </View>
           </View>
 

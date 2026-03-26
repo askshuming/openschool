@@ -174,9 +174,9 @@ export function HomeScreen({ navigation, route }: Props) {
           : "不会的这一页，拍一下";
   const heroSubtitle =
     homePhase === "resume_session"
-      ? `当前在学「${journeyLessonTitle}」第 ${step}/${Math.max(totalSteps, 1)} 步，学完会自动接温和复习。`
+      ? `当前在学「${journeyLessonTitle}」第 ${step}/${Math.max(totalSteps, 1)} 步。`
       : homePhase === "open_review_focus"
-        ? `刚学完「${journeyLessonTitle}」，现在先做 ${pendingReviewCount} 项温和复习，把这次内容收住。`
+        ? `刚学完「${journeyLessonTitle}」，现在先收眼前这一题。`
         : resumableJourneyInput
           ? `刚拍的这一页，先做「${routeFocusStep}」。`
           : "课文页、阅读题、作文题、生字词，都能直接拍下来开始。";
@@ -189,8 +189,8 @@ export function HomeScreen({ navigation, route }: Props) {
           ? "我先带你做第一步"
           : "不会的那页拍给我";
   const capturePrimarySubtitle = resumableJourneyInput
-    ? "再拍新的一页，我继续接住"
-    : "拍一页，马上开始第一步";
+    ? "再拍新的一页，我继续接"
+    : "拍一页，马上开始";
   const captureEntryHint = resumableJourneyInput
     ? "拍照始终是主入口，刚拍的这一页会自动续上"
     : "拍照学习是主入口";
