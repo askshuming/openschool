@@ -50,47 +50,52 @@ export function HomeJourneyCard({
   return (
     <AppCard style={styles.card}>
       <View style={styles.rowTop}>
-        <Text style={textStyles.title}>这页现在走到哪了</Text>
+        <Text style={textStyles.title}>现在只做这一件事</Text>
         <StatusChip label={statusLabel} tone={statusTone} />
       </View>
       <View style={styles.focusCard}>
-        <Text style={styles.focusLabel}>下一步</Text>
+        <Text style={styles.focusLabel}>现在就做</Text>
         <Text style={styles.focusTitle}>{headline}</Text>
         <Text style={styles.focusBody}>{body}</Text>
-      </View>
-
-      <View style={styles.track}>
-        <View style={[styles.step, inputDone && styles.stepDone]}>
-          <Text style={styles.stepTitle}>拍到这页</Text>
-          <Text style={styles.stepMeta} numberOfLines={2}>
-            {inputMeta}
-          </Text>
-          <StatusChip label={inputStatusLabel} tone="primary" />
-        </View>
-
-        <View style={[styles.step, learningDone && styles.stepDone]}>
-          <Text style={styles.stepTitle}>开始学习</Text>
-          <Text style={styles.stepMeta} numberOfLines={2}>
-            {learningDisplay}
-          </Text>
-          <StatusChip label={learningStatusLabel} tone={learningTone} />
-        </View>
-
-        <View style={[styles.step, reviewDone && styles.stepDone]}>
-          <Text style={styles.stepTitle}>收一下</Text>
-          <Text style={styles.stepMeta} numberOfLines={2}>
-            {reviewMeta}
-          </Text>
-          <StatusChip label={reviewStatusLabel} tone={reviewTone} />
-        </View>
-      </View>
-
-      <View style={styles.footer}>
-        <Text style={styles.footnote}>{footnote}</Text>
-        <View style={styles.actionWrap}>
+        <View style={styles.focusActionWrap}>
           <AppButton label={actionLabel} onPress={onAction} />
         </View>
       </View>
+
+      <Text style={styles.progressLabel}>这页进度</Text>
+      <View style={styles.track}>
+        <View style={[styles.step, inputDone && styles.stepDone]}>
+          <View style={styles.stepTop}>
+            <Text style={styles.stepTitle}>拍到这页</Text>
+            <StatusChip label={inputStatusLabel} tone="primary" />
+          </View>
+          <Text style={styles.stepMeta} numberOfLines={2}>
+            {inputMeta}
+          </Text>
+        </View>
+
+        <View style={[styles.step, learningDone && styles.stepDone]}>
+          <View style={styles.stepTop}>
+            <Text style={styles.stepTitle}>开始学习</Text>
+            <StatusChip label={learningStatusLabel} tone={learningTone} />
+          </View>
+          <Text style={styles.stepMeta} numberOfLines={2}>
+            {learningDisplay}
+          </Text>
+        </View>
+
+        <View style={[styles.step, reviewDone && styles.stepDone]}>
+          <View style={styles.stepTop}>
+            <Text style={styles.stepTitle}>收一下</Text>
+            <StatusChip label={reviewStatusLabel} tone={reviewTone} />
+          </View>
+          <Text style={styles.stepMeta} numberOfLines={2}>
+            {reviewMeta}
+          </Text>
+        </View>
+      </View>
+
+      <Text style={styles.footnote}>{footnote}</Text>
     </AppCard>
   );
 }
@@ -127,24 +132,33 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 20,
   },
+  focusActionWrap: {
+    marginTop: spacing.xs,
+  },
+  progressLabel: {
+    ...textStyles.meta,
+    color: colors.textSecondary,
+  },
   track: {
     flexDirection: "row",
     gap: spacing.sm,
-    flexWrap: "wrap",
   },
   step: {
     flex: 1,
-    minWidth: 92,
+    minWidth: 0,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.borderSoft,
     backgroundColor: colors.bgElevated,
     padding: spacing.sm,
-    gap: spacing.xs,
+    gap: spacing.xxs,
   },
   stepDone: {
     borderColor: colors.primary200,
     backgroundColor: colors.primary50,
+  },
+  stepTop: {
+    gap: spacing.xxs,
   },
   stepTitle: {
     ...textStyles.meta,
@@ -153,16 +167,10 @@ const styles = StyleSheet.create({
   stepMeta: {
     ...textStyles.caption,
     color: colors.textSecondary,
-    minHeight: 36,
-  },
-  footer: {
-    gap: spacing.sm,
+    minHeight: 32,
   },
   footnote: {
     ...textStyles.caption,
     color: colors.textTertiary,
-  },
-  actionWrap: {
-    width: "100%",
   },
 });
