@@ -1,11 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
-import * as DocumentPicker from "expo-document-picker";
-import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActionSheetIOS,
   Animated,
   Platform,
   Pressable,
@@ -33,13 +30,12 @@ import { layoutStyles, textStyles } from "../design/theme";
 import { useCatalog } from "../hooks/useCatalog";
 import { useParentSettings } from "../hooks/useParentSettings";
 import { useProgressSummary } from "../hooks/useProgressSummary";
+import { useHomeGenerationFlow } from "../hooks/useHomeGenerationFlow";
 import { useReviewQueue } from "../hooks/useReviewQueue";
 import { AppTabParamList } from "../navigation/types";
 import { buildHomeJourneyPresentation } from "../domain/learningJourneyPresentation";
 import { useAppState } from "../state/AppState";
 import {
-  ContentInputRecord,
-  createContentInputRecord,
   getContentTypeLabel,
   getInputSourceLabel,
   getRelativeInputTimeLabel,
@@ -52,16 +48,6 @@ import { isOfflineError, toUserErrorMessage } from "../utils/errorMessage";
 import { triggerFeedback } from "../utils/feedback";
 
 type Props = BottomTabScreenProps<AppTabParamList, "Home">;
-type GenerateSource = "camera" | "upload";
-type GenerateAssetMeta = {
-  name?: string | null;
-  uri?: string | null;
-  mimeType?: string | null;
-  size?: number;
-  width?: number;
-  height?: number;
-  base64?: string | null;
-};
 
 type HomeNotice = {
   id: string;
@@ -102,45 +88,11 @@ function pickRecommendedLesson(
   return lessons.find((lesson) => lesson.id.toLowerCase().startsWith(`${prefix}_`)) ?? lessons[0];
 }
 
-function blobToBase64(blob: Blob) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("文件读取失败"));
-    reader.onloadend = () => {
-      if (typeof reader.result !== "string") {
-        reject(new Error("文件读取失败"));
-        return;
-      }
-      const [, base64 = ""] = reader.result.split(",");
-      resolve(base64);
-    };
-    reader.readAsDataURL(blob);
-  });
-}
-
-async function readAssetBase64(asset?: GenerateAssetMeta) {
-  if (!asset) {
-    return undefined;
-  }
-  if (asset.base64) {
-    return asset.base64;
-  }
-  if (!asset.uri) {
-    return undefined;
-  }
-
-  const response = await fetch(asset.uri);
-  const blob = await response.blob();
-  return blobToBase64(blob);
-}
-
 export function HomeScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
   const { height: viewportHeight } = useWindowDimensions();
   const floatAnim = useRef(new Animated.Value(0)).current;
   const noticeAnim = useRef(new Animated.Value(0)).current;
-  const generationOverlayAnim = useRef(new Animated.Value(0)).current;
-  const generationTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
   const handledCelebrationRef = useRef<string | null>(null);
   const handledReviewRef = useRef<string | null>(null);
 
@@ -153,9 +105,6 @@ export function HomeScreen({ navigation, route }: Props) {
   const lastCompletedReview = useLearningJourneyStore((s) => s.lastCompletedReview);
   const recordGeneratedInput = useLearningJourneyStore((s) => s.recordGeneratedInput);
   const [notice, setNotice] = useState<HomeNotice | null>(null);
-  const [generatingSource, setGeneratingSource] = useState<GenerateSource | null>(null);
-  const [generationStepIndex, setGenerationStepIndex] = useState(0);
-  const [pendingGeneratedInput, setPendingGeneratedInput] = useState<ContentInputRecord | null>(null);
 
   const childKey = childId ?? childProfile?.nickname ?? "demo";
   const progressQuery = useProgressSummary(childKey, childId ?? undefined);
@@ -193,7 +142,6 @@ export function HomeScreen({ navigation, route }: Props) {
     ? readingLevelLabelMap[childProfile.readingLevel]
     : "系统会自动调节";
   const latestInput = recentInputs[0] ?? null;
-  const activeGeneratedInput = pendingGeneratedInput ?? latestInput;
   const resumableJourneyInput = journeyInput ?? latestInput;
   const homeJourney = buildHomeJourneyPresentation({
     resumableInput: resumableJourneyInput,
@@ -213,6 +161,61 @@ export function HomeScreen({ navigation, route }: Props) {
     catalogQuery.isRefetching ||
     reviewQueueQuery.isRefetching ||
     settingsQuery.isRefetching;
+
+  const stageSupportTitle = latestInput ? "最近一次输入" : "可直接拍的内容";
+  const stageSupportSummary = latestInput
+    ? `${latestInput.routeLabel} · ${latestInput.recommendedEntryStep}`
+    : "不用先判断内容类型，拍下来就行。";
+  const stageSupportMeta = latestInput
+    ? `${getInputSourceLabel(latestInput.source)} · ${getRelativeInputTimeLabel(latestInput.createdAt)}`
+    : "教材、练习题、板书、图片都可以";
+  const heroMinHeight = Math.max(540, Math.min(680, viewportHeight - insets.top - 108));
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, {
+          toValue: 1,
+          duration: motion.cardSwitch,
+          useNativeDriver: true,
+        }),
+        Animated.timing(floatAnim, {
+          toValue: 0,
+          duration: motion.cardSwitch,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [floatAnim]);
+
+  const {
+    generationOverlayAnim,
+    generatingSource,
+    generationStepIndex,
+    activeGeneratedInput,
+    handleCameraStart,
+    openUploadChooser,
+  } = useHomeGenerationFlow({
+    launchLessonId: launchLesson?.id ?? null,
+    latestInput,
+    recentInputCount: recentInputs.length,
+    focusLabel,
+    gradeLabel: childGradeLabel,
+    readingLevel: childProfile?.readingLevel,
+    addInput,
+    recordGeneratedInput,
+    onNotice: setNotice,
+    onNavigateToSession: ({ lessonId, generationSource, contentInputId }) => {
+      navigation.navigate("Session", {
+        forceNew: true,
+        lessonId,
+        generationSource,
+        contentInputId,
+      });
+    },
+  });
 
   const generationPromises = [
     {
@@ -234,53 +237,6 @@ export function HomeScreen({ navigation, route }: Props) {
         : "会直接安排成孩子现在能开始的 3-5 步学习路线",
     },
   ];
-  const stageSupportTitle = latestInput ? "最近一次输入" : "可直接拍的内容";
-  const stageSupportSummary = latestInput
-    ? `${latestInput.routeLabel} · ${latestInput.recommendedEntryStep}`
-    : "不用先判断内容类型，拍下来就行。";
-  const stageSupportMeta = latestInput
-    ? `${getInputSourceLabel(latestInput.source)} · ${getRelativeInputTimeLabel(latestInput.createdAt)}`
-    : "教材、练习题、板书、图片都可以";
-  const heroMinHeight = Math.max(540, Math.min(680, viewportHeight - insets.top - 108));
-  function clearGenerationTimers() {
-    generationTimersRef.current.forEach((timer) => clearTimeout(timer));
-    generationTimersRef.current = [];
-  }
-
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatAnim, {
-          toValue: 1,
-          duration: motion.cardSwitch,
-          useNativeDriver: true,
-        }),
-        Animated.timing(floatAnim, {
-          toValue: 0,
-          duration: motion.cardSwitch,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [floatAnim]);
-
-  useEffect(() => () => clearGenerationTimers(), []);
-
-  useEffect(() => {
-    if (!generatingSource) {
-      generationOverlayAnim.setValue(0);
-      return;
-    }
-
-    generationOverlayAnim.setValue(0);
-    Animated.timing(generationOverlayAnim, {
-      toValue: 1,
-      duration: motion.normal,
-      useNativeDriver: true,
-    }).start();
-  }, [generationOverlayAnim, generatingSource]);
 
   useEffect(() => {
     const celebrationAt = route.params?.celebrationAt;
@@ -441,300 +397,6 @@ export function HomeScreen({ navigation, route }: Props) {
     icon: homeJourney.secondaryAction.icon,
     onPress: () => runHomeJourneyAction(homeJourney.secondaryAction.kind),
   };
-
-  function showLaunchUnavailableNotice() {
-    setNotice({
-      id: `empty-${Date.now()}`,
-      title: "当前还没有新内容",
-      body: "请先拍照或上传教材、练习题、图片后再开始这次学习。",
-      tone: "primary",
-    });
-  }
-
-  function canStartGenerateFlow() {
-    if (!launchLesson) {
-      showLaunchUnavailableNotice();
-      return false;
-    }
-    return true;
-  }
-
-  async function handleCameraStart() {
-    if (generatingSource || !canStartGenerateFlow()) {
-      return;
-    }
-
-    try {
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
-      if (!permission.granted) {
-        setNotice({
-          id: `camera-permission-${Date.now()}`,
-          title: "需要相机权限",
-          body: "允许相机权限后，才能拍照并安排当前学习内容。",
-          tone: "primary",
-        });
-        return;
-      }
-
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ["images"],
-        quality: 0.84,
-        allowsEditing: false,
-        base64: true,
-      });
-      if (result.canceled || !result.assets?.length) {
-        return;
-      }
-
-      const asset = result.assets[0];
-      void startGenerateFlow("camera", undefined, {
-        name: asset.fileName,
-        uri: asset.uri,
-        mimeType: asset.mimeType,
-        size: asset.fileSize,
-        width: asset.width,
-        height: asset.height,
-        base64: asset.base64,
-      });
-    } catch (error) {
-      setNotice({
-        id: `camera-error-${Date.now()}`,
-        title: "暂时无法打开相机",
-        body: toUserErrorMessage(error, "请稍后重试，或先使用上传内容入口。"),
-        tone: "primary",
-      });
-    }
-  }
-
-  async function handlePhotoLibraryStart() {
-    if (generatingSource || !canStartGenerateFlow()) {
-      return;
-    }
-
-    try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        setNotice({
-          id: `library-permission-${Date.now()}`,
-          title: "需要照片权限",
-          body: "允许照片权限后，才能从相册选择图片并安排学习内容。",
-          tone: "primary",
-        });
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        quality: 0.84,
-        allowsEditing: false,
-        base64: true,
-      });
-      if (result.canceled || !result.assets?.length) {
-        return;
-      }
-
-      const asset = result.assets[0];
-      void startGenerateFlow("upload", undefined, {
-        name: asset.fileName,
-        uri: asset.uri,
-        mimeType: asset.mimeType,
-        size: asset.fileSize,
-        width: asset.width,
-        height: asset.height,
-        base64: asset.base64,
-      });
-    } catch (error) {
-      setNotice({
-        id: `library-error-${Date.now()}`,
-        title: "暂时无法打开相册",
-        body: toUserErrorMessage(error, "请稍后重试，或先选择 PDF/文件。"),
-        tone: "primary",
-      });
-    }
-  }
-
-  async function handleDocumentUploadStart() {
-    if (generatingSource || !canStartGenerateFlow()) {
-      return;
-    }
-
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ["image/*", "application/pdf"],
-        copyToCacheDirectory: true,
-        multiple: false,
-      });
-      if (result.canceled || !result.assets?.length) {
-        return;
-      }
-
-      const asset = result.assets[0];
-      const assetName = asset.name?.toLowerCase() ?? "";
-      const preferredContentType =
-        asset.mimeType === "application/pdf" || assetName.endsWith(".pdf")
-          ? "pdf"
-          : undefined;
-
-      void startGenerateFlow("upload", preferredContentType, {
-        name: asset.name,
-        uri: asset.uri,
-        mimeType: asset.mimeType,
-        size: asset.size,
-      });
-    } catch (error) {
-      setNotice({
-        id: `upload-error-${Date.now()}`,
-        title: "暂时无法打开文件",
-        body: toUserErrorMessage(error, "请稍后重试。"),
-        tone: "primary",
-      });
-    }
-  }
-
-  function openUploadChooser() {
-    if (generatingSource || !canStartGenerateFlow()) {
-      return;
-    }
-
-    if (Platform.OS === "ios") {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: ["取消", "从相册选图", "选择 PDF/文件"],
-          cancelButtonIndex: 0,
-          userInterfaceStyle: "light",
-        },
-        (buttonIndex) => {
-          if (buttonIndex === 1) {
-            void handlePhotoLibraryStart();
-          }
-          if (buttonIndex === 2) {
-            void handleDocumentUploadStart();
-          }
-        },
-      );
-      return;
-    }
-
-    void handleDocumentUploadStart();
-  }
-
-  function queueGeneratedLesson(
-    nextInput: ContentInputRecord,
-    source: GenerateSource,
-    lessonId: string,
-  ) {
-    recordGeneratedInput({
-      id: nextInput.id,
-      title: nextInput.title,
-      source: nextInput.source,
-      contentType: nextInput.contentType,
-      routeLabel: nextInput.routeLabel,
-      recommendedEntryStep: nextInput.recommendedEntryStep,
-      generatedTaskCount: nextInput.generatedTaskCount,
-      lessonId: nextInput.lessonId,
-      createdAt: nextInput.createdAt,
-    });
-    clearGenerationTimers();
-    setPendingGeneratedInput(nextInput);
-    setGenerationStepIndex(1);
-    generationTimersRef.current = [
-      setTimeout(() => setGenerationStepIndex(2), 360),
-      setTimeout(() => {
-        setGeneratingSource(null);
-        setGenerationStepIndex(0);
-        setPendingGeneratedInput(null);
-        navigation.navigate("Session", {
-          forceNew: true,
-          lessonId,
-          generationSource: source,
-          contentInputId: nextInput.id,
-        });
-      }, 1160),
-    ];
-  }
-
-  async function startGenerateFlow(
-    source: GenerateSource,
-    preferredContentType?: "textbook" | "worksheet" | "photo" | "pdf",
-    asset?: GenerateAssetMeta,
-  ) {
-    if (generatingSource) {
-      return;
-    }
-    if (!launchLesson) {
-      showLaunchUnavailableNotice();
-      return;
-    }
-
-    trackEvent("home_start_tap", {
-      lessonId: launchLesson.id,
-      source: source === "camera" ? "home_camera_generate" : "home_upload_generate",
-    });
-
-    const provisionalInput = createContentInputRecord({
-      source,
-      countSeed: recentInputs.length,
-      focusLabel,
-      gradeLabel: childGradeLabel,
-      lessonId: launchLesson.id,
-      preferredContentType,
-      asset,
-    });
-
-    clearGenerationTimers();
-    setGenerationStepIndex(0);
-    setGeneratingSource(source);
-    setPendingGeneratedInput(provisionalInput);
-    triggerFeedback("success");
-
-    try {
-      let assetBase64: string | undefined;
-      try {
-        assetBase64 = await readAssetBase64(asset);
-      } catch {
-        assetBase64 = undefined;
-      }
-
-      const analysis = await analyzeContentApi({
-        source,
-        fileName: asset?.name ?? undefined,
-        mimeType: asset?.mimeType ?? undefined,
-        fileSize: asset?.size,
-        preferredContentType,
-        gradeLabel: childGradeLabel,
-        focusLabel,
-        readingLevel: childProfile?.readingLevel,
-        assetBase64,
-      });
-
-      const nextInput = createContentInputRecord({
-        source,
-        countSeed: recentInputs.length,
-        focusLabel,
-        gradeLabel: childGradeLabel,
-        lessonId: analysis.recommendedLessonId ?? GENERATED_DYNAMIC_LESSON_ID,
-        preferredContentType,
-        asset,
-        analysis: {
-          ...analysis,
-          recommendedLessonId: analysis.recommendedLessonId ?? GENERATED_DYNAMIC_LESSON_ID,
-        },
-      });
-
-      addInput(nextInput);
-      queueGeneratedLesson(nextInput, source, nextInput.lessonId ?? GENERATED_DYNAMIC_LESSON_ID);
-    } catch (error) {
-      const fallbackInput = provisionalInput;
-      addInput(fallbackInput);
-      queueGeneratedLesson(fallbackInput, source, fallbackInput.lessonId ?? launchLesson.id);
-      setNotice({
-        id: `content-analyze-fallback-${Date.now()}`,
-        title: "内容已收到",
-        body: toUserErrorMessage(error, "暂时无法完成完整识别，已先按当前信息安排学习路线。"),
-        tone: "primary",
-      });
-    }
-  }
 
   return (
     <View style={layoutStyles.screen}>
