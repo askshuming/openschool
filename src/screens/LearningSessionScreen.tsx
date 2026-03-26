@@ -9,12 +9,12 @@ import { trackEvent } from "../analytics/tracker";
 import { ActivityCard } from "../api/contracts";
 import { queryKeys } from "../api/queryKeys";
 import { clearSessionCache, finishSessionApi } from "../api/service";
-import { AppButton } from "../components/AppButton";
 import { AppCard } from "../components/AppCard";
-import { FeedbackBox } from "../components/FeedbackBox";
 import { MascotBuddy, MascotState } from "../components/MascotBuddy";
 import { ProgressHeader } from "../components/ProgressHeader";
 import { StatusChip } from "../components/StatusChip";
+import { LearningActionDock } from "../components/session/LearningActionDock";
+import { LearningCardBody } from "../components/session/LearningCardBody";
 import { ScreenErrorState } from "../components/states/ScreenErrorState";
 import { ScreenLoadingState } from "../components/states/ScreenLoadingState";
 import { ScreenOfflineState } from "../components/states/ScreenOfflineState";
@@ -738,238 +738,34 @@ export function LearningSessionScreen({ navigation, route }: Props) {
     navigation.navigate("Home");
   }
 
-  function renderCardBody(currentCard: ActivityCard) {
-    if (currentCard.type === "intro") {
-      return (
-        <View style={styles.blockGap}>
-          {currentCard.payload.goals?.map((goal) => (
-            <Text key={goal} style={styles.contentText}>
-              {`• ${goal}`}
-            </Text>
-          ))}
-        </View>
-      );
+  async function completeLessonAndGoHome() {
+    Speech.stop();
+    abortSpeechRecognition();
+    const completedAt = new Date().toISOString();
+    if (sessionQuery.data?.sessionId) {
+      try {
+        await finishSessionApi({
+          sessionId: sessionQuery.data.sessionId,
+          completed: true,
+        });
+      } catch {
+        // Keep local completion flow even when finish API fails.
+      }
+      recordSessionCompleted({
+        sessionId: sessionQuery.data.sessionId,
+        completedAt,
+      });
     }
-    if (currentCard.type === "vocab") {
-      return (
-        <View style={styles.blockGap}>
-          {currentCard.payload.vocabItems?.map((item) => (
-            <View key={item.word} style={styles.vocabItem}>
-              <Text style={textStyles.title}>
-                {item.word} <Text style={styles.pinyin}>{item.pinyin}</Text>
-              </Text>
-              <Text style={styles.contentText}>{item.explanation}</Text>
-              <Text style={styles.subText}>{item.example}</Text>
-            </View>
-          ))}
-        </View>
-      );
-    }
-    if (currentCard.type === "close_reading") {
-      return (
-        <View style={styles.blockGap}>
-          <Text style={styles.subLabel}>原文</Text>
-          <Text style={styles.contentText}>{currentCard.payload.paragraph}</Text>
-          <Text style={styles.subLabel}>换种说法</Text>
-          <Text style={styles.contentText}>{currentCard.payload.simpleExplanation}</Text>
-        </View>
-      );
-    }
-    if (currentCard.type === "main_idea") {
-      return (
-        <View style={styles.blockGap}>
-          {currentCard.payload.structure?.map((node) => (
-            <Text key={node} style={styles.contentText}>
-              {`• ${node}`}
-            </Text>
-          ))}
-          <Text style={styles.subLabel}>主旨</Text>
-          <Text style={styles.contentText}>{currentCard.payload.mainIdea}</Text>
-        </View>
-      );
-    }
-    if (currentCard.type === "quiz") {
-      return (
-        <View style={styles.optionWrap}>
-          <Text style={styles.contentText}>{currentCard.payload.body}</Text>
-          {currentCard.payload.options?.map((option, idx) => {
-            const active = selectedOption === idx;
-            return (
-              <Pressable
-                key={option}
-                onPress={() => {
-                  if (!answerResult) {
-                    setSelectedOption(idx);
-                  }
-                }}
-                style={[styles.option, active && styles.optionActive]}
-              >
-                <Text style={[textStyles.body, active && styles.optionTextActive]}>{option}</Text>
-              </Pressable>
-            );
-          })}
-          {answerResult ? (
-            <FeedbackBox
-              isCorrect={Boolean(answerResult.correct)}
-              message={
-                answerResult.correct
-                  ? answerResult.feedback.whyWrong
-                  : `${answerResult.feedback.whyWrong} ${answerResult.feedback.retryQuestion}`
-              }
-              evidence={answerResult.feedback.evidenceText}
-            />
-          ) : null}
-        </View>
-      );
-    }
-    if (currentCard.type === "feedback") {
-      return (
-        <View style={styles.blockGap}>
-          {answerResult ? (
-            <FeedbackBox
-              isCorrect={Boolean(answerResult.correct)}
-              message={answerResult.feedback.whyWrong}
-              evidence={answerResult.feedback.evidenceText}
-            />
-          ) : (
-            <Text style={styles.contentText}>先完成小测后再查看反馈。</Text>
-          )}
-        </View>
-      );
-    }
-    if (currentCard.type === "recitation") {
-      return (
-        <View style={styles.blockGap}>
-          <Text style={styles.subLabel}>跟读片段</Text>
-          <View style={styles.recitationQuoteWrap}>
-            <Text style={styles.recitationQuote}>{currentCard.payload.recitationText}</Text>
-          </View>
-          <Text style={styles.contentText}>
-            {currentCard.payload.recitationTip ?? "先听示范，再完整朗读一遍。"}
-          </Text>
-          <View style={styles.recitationActionRow}>
-            <Pressable
-              hitSlop={8}
-              onPress={() => playRecitationSample(currentCard)}
-              style={({ pressed }) => [
-                styles.recitationSecondaryAction,
-                pressed && styles.recitationActionPressed,
-              ]}
-            >
-              <Ionicons name="volume-high-outline" size={18} color={colors.primary500} />
-              <Text style={styles.recitationSecondaryText}>听示范</Text>
-            </Pressable>
-            <Pressable
-              hitSlop={8}
-              onPress={() => toggleRecitationCapture(currentCard)}
-              style={({ pressed }) => [
-                styles.recitationPrimaryAction,
-                recitationRecognizing && styles.recitationPrimaryActionActive,
-                pressed && styles.recitationActionPressed,
-              ]}
-            >
-              <Ionicons
-                name={recitationRecognizing ? "stop-circle-outline" : "mic-outline"}
-                size={20}
-                color={recitationRecognizing ? "#FFFFFF" : colors.primary600}
-              />
-              <Text
-                style={[
-                  styles.recitationPrimaryText,
-                  recitationRecognizing && styles.recitationPrimaryTextActive,
-                ]}
-              >
-                {recitationRecognizing ? "结束跟读" : "开始跟读"}
-              </Text>
-            </Pressable>
-          </View>
-          {!isSpeechRecognitionSupported() || !isSpeechRecognitionAvailable() ? (
-            <Pressable
-              hitSlop={8}
-              onPress={() => completeRecitationForPreview(currentCard)}
-              style={({ pressed }) => [
-                styles.recitationPreviewFallback,
-                pressed && styles.recitationActionPressed,
-              ]}
-            >
-              <Ionicons name="construct-outline" size={16} color={colors.textSecondary} />
-              <Text style={styles.recitationPreviewFallbackText}>当前预览环境先标记完成</Text>
-            </Pressable>
-          ) : null}
-          <View style={styles.recitationStatusCard}>
-            <View style={styles.recitationStatusRow}>
-              <StatusChip label={recitationSupportText} tone="primary" />
-              {recitationRecognizing ? (
-                <StatusChip label="识别中" tone="accent" />
-              ) : recitationAssessment ? (
-                <StatusChip label={`${Math.round(recitationAssessment.matchRatio * 100)}% 匹配`} tone="accent" />
-              ) : null}
-            </View>
-            <View style={styles.recitationMeterTrack}>
-              <View
-                style={[
-                  styles.recitationMeterFill,
-                  {
-                    width: `${Math.max(12, recitationRecognizing ? recitationVolume * 100 : recitationAssessment ? recitationAssessment.matchRatio * 100 : 12)}%`,
-                  },
-                ]}
-              />
-            </View>
-            <Text style={styles.recitationTranscriptLabel}>
-              {recitationRecognizing ? "实时识别" : recitationAssessment ? "本次识别结果" : "准备跟读"}
-            </Text>
-            <Text style={styles.recitationTranscriptText}>
-              {recitationFinalTranscript ||
-                recitationTranscript ||
-                recitationAssessment?.transcript ||
-                "点“开始跟读”后，系统会直接识别孩子刚刚读出的内容。"}
-            </Text>
-          </View>
-          {recitationMutation.isError || recitationError ? (
-            <Text style={styles.errorHint}>
-              {recitationError ?? toUserErrorMessage(recitationMutation.error, "朗读记录失败，请重试。")}
-            </Text>
-          ) : null}
-          {recitationDone && recitationAssessment ? (
-            <FeedbackBox
-              isCorrect={recitationAssessment.isCorrect}
-              message={recitationAssessment.message}
-              evidence={recitationAssessment.evidence}
-            />
-          ) : null}
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.blockGap}>
-        <View style={styles.summaryHeroCard}>
-          <MascotBuddy state="happy" size={92} speech="今天这节学完啦" />
-          <View style={styles.summaryHeroCopy}>
-            <Text style={styles.summaryHeroTitle}>这次已经掌握</Text>
-            <Text style={styles.summaryHeroText}>
-              {latestInput
-                ? `基于「${latestInput.title}」拆出的任务已经完成，今天先把这些重点收好。`
-                : "这节课的关键内容已经走完，可以先稳稳收住。"}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.summaryTagWrap}>
-          {currentCard.payload.mastered?.map((item) => (
-            <View key={item} style={styles.summaryTag}>
-              <Text style={styles.summaryTagText}>{item}</Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.summaryNextCard}>
-          <Text style={styles.summaryNextLabel}>下一步</Text>
-          <Text style={styles.summaryNextText}>{currentCard.payload.nextReview}</Text>
-          <Text style={styles.summaryNextMeta}>完成后会回到首页主线，系统会继续把这次学习接到温和复习。</Text>
-        </View>
-      </View>
-    );
+    clearSession();
+    clearSessionCache();
+    queryClient.removeQueries({ queryKey: queryKeys.session(childId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.progressSummary(childKey) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.weeklyReport(childKey) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.reviewQueue() });
+    navigation.navigate("Home", {
+      celebrationAt: completedAt,
+      celebrationLessonTitle: lessonTitle,
+    });
   }
 
   if (sessionQuery.isLoading) {
@@ -1219,7 +1015,29 @@ export function LearningSessionScreen({ navigation, route }: Props) {
               </View>
             ) : null}
             <Text style={textStyles.title}>{card.payload.title}</Text>
-            {renderCardBody(card)}
+            <LearningCardBody
+              card={card}
+              selectedOption={selectedOption}
+              answerResult={answerResult}
+              onSelectOption={setSelectedOption}
+              latestInputTitle={latestInput?.title}
+              recitationRecognizing={recitationRecognizing}
+              recitationSupportText={recitationSupportText}
+              recitationTranscript={recitationTranscript}
+              recitationFinalTranscript={recitationFinalTranscript}
+              recitationDone={recitationDone}
+              recitationAssessment={recitationAssessment}
+              recitationErrorText={
+                recitationMutation.isError
+                  ? recitationError ?? toUserErrorMessage(recitationMutation.error, "朗读记录失败，请重试。")
+                  : recitationError
+              }
+              recitationVolume={recitationVolume}
+              showRecitationPreviewFallback={!isSpeechRecognitionSupported() || !isSpeechRecognitionAvailable()}
+              onPlayRecitationSample={() => playRecitationSample(card)}
+              onToggleRecitationCapture={() => toggleRecitationCapture(card)}
+              onCompleteRecitationPreview={() => completeRecitationForPreview(card)}
+            />
           </AppCard>
         </Animated.View>
 
@@ -1236,102 +1054,31 @@ export function LearningSessionScreen({ navigation, route }: Props) {
         ) : null}
       </ScrollView>
 
-      <View style={[styles.actionDock, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
-        <View style={styles.actionDockSurface}>
-          <View style={styles.actionDockHeader}>
-            <View style={styles.actionDockCopy}>
-              <Text style={styles.actionDockEyebrow}>
-                {isLast ? "最后一步" : `${currentStepLabel} · 共 ${visibleTotalSteps} 步`}
-              </Text>
-              <Text style={styles.actionDockTitle}>{actionDockTitle}</Text>
-              <Text style={styles.actionDockMeta} numberOfLines={1}>
-                {actionDockMeta}
-              </Text>
-            </View>
-            <StatusChip label={actionDockStatusLabel} tone="accent" />
-          </View>
-
-          {isQuiz && !answerResult ? (
-            <AppButton
-              label={answerMutation.isPending ? "提交中..." : "提交答案"}
-              onPress={() => onSubmitAnswer(card)}
-              disabled={selectedOption == null || answerMutation.isPending}
-            />
-          ) : null}
-
-          {showQuizRetryActions ? (
-            <View style={styles.inlineActionRow}>
-              <View style={styles.inlineActionCell}>
-                <AppButton label="再试一次" onPress={resetQuizAttempt} />
-              </View>
-              <View style={styles.inlineActionCell}>
-                <AppButton label="先继续" onPress={goToNextLearningStep} variant="secondary" />
-              </View>
-            </View>
-          ) : null}
-
-          {showRecitationRetryActions ? (
-            <View style={styles.inlineActionRow}>
-              <View style={styles.inlineActionCell}>
-                <AppButton label="再读一次" onPress={resetRecitationAttempt} />
-              </View>
-              <View style={styles.inlineActionCell}>
-                <AppButton label="先继续" onPress={goToNextLearningStep} variant="secondary" />
-              </View>
-            </View>
-          ) : null}
-
-          {canGoNext && !isLast ? (
-            <AppButton label="下一步" onPress={goToNextLearningStep} />
-          ) : null}
-
-          {isLast ? (
-            <AppButton
-              label="完成学习，返回首页"
-              onPress={async () => {
-                Speech.stop();
-                abortSpeechRecognition();
-                const completedAt = new Date().toISOString();
-                if (sessionQuery.data?.sessionId) {
-                  try {
-                    await finishSessionApi({
-                      sessionId: sessionQuery.data.sessionId,
-                      completed: true,
-                    });
-                  } catch {
-                    // Keep local completion flow even when finish API fails.
-                  }
-                  recordSessionCompleted({
-                    sessionId: sessionQuery.data.sessionId,
-                    completedAt,
-                  });
-                }
-                clearSession();
-                clearSessionCache();
-                queryClient.removeQueries({ queryKey: queryKeys.session(childId) });
-                queryClient.invalidateQueries({ queryKey: queryKeys.progressSummary(childKey) });
-                queryClient.invalidateQueries({ queryKey: queryKeys.weeklyReport(childKey) });
-                queryClient.invalidateQueries({ queryKey: queryKeys.reviewQueue() });
-                navigation.navigate("Home", {
-                  celebrationAt: completedAt,
-                  celebrationLessonTitle: lessonTitle,
-                });
-              }}
-            />
-          ) : null}
-
-          <View style={[styles.restartRow, step === 0 && styles.restartRowSingleAction]}>
-            <Pressable hitSlop={8} onPress={pauseAndBackHome}>
-              <Text style={styles.pauseText}>稍后继续</Text>
-            </Pressable>
-            {step > 0 ? (
-              <Pressable hitSlop={8} onPress={restartLesson}>
-                <Text style={styles.restartText}>重新开始本课</Text>
-              </Pressable>
-            ) : null}
-          </View>
-        </View>
-      </View>
+      <LearningActionDock
+        bottomInset={Math.max(insets.bottom, spacing.sm)}
+        isLast={isLast}
+        currentStepLabel={currentStepLabel}
+        visibleTotalSteps={visibleTotalSteps}
+        actionDockStatusLabel={actionDockStatusLabel}
+        actionDockTitle={actionDockTitle}
+        actionDockMeta={actionDockMeta}
+        isQuiz={isQuiz}
+        showQuizRetryActions={showQuizRetryActions}
+        showRecitationRetryActions={showRecitationRetryActions}
+        canGoNext={canGoNext}
+        selectedOption={selectedOption}
+        answerPending={answerMutation.isPending}
+        onSubmitAnswer={() => onSubmitAnswer(card)}
+        onRetryQuiz={resetQuizAttempt}
+        onRetryRecitation={resetRecitationAttempt}
+        onNext={goToNextLearningStep}
+        onComplete={() => {
+          void completeLessonAndGoHome();
+        }}
+        onPause={pauseAndBackHome}
+        onRestart={restartLesson}
+        showRestart={step > 0}
+      />
     </View>
   );
 }
