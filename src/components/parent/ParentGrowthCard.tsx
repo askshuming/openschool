@@ -22,13 +22,13 @@ export function ParentGrowthCard({
   return (
     <AppCard style={styles.card}>
       <View style={styles.rowBetween}>
-        <Text style={textStyles.title}>这周成长</Text>
+        <Text style={textStyles.title}>最近变化</Text>
         <StatusChip label={`${recitationCompletedCount} 次朗读`} tone="primary" />
       </View>
       <Text style={styles.lead}>
         {masteredSkillLabels.length > 0
-          ? `已经稳定掌握 ${masteredSkillLabels.length} 项能力，继续保持这个节奏。`
-          : "刚开始建立学习节奏，先从拍一页开始就够了。"}
+          ? `已经开始稳住 ${masteredSkillLabels.length} 项能力，继续按现在这个节奏推进。`
+          : "学习节奏还在建立，先把拍一页、学一轮、复习一题这个闭环跑顺。"}
       </Text>
       <View style={styles.metaRow}>
         {masteredSkillLabels.length > 0 ? (
@@ -38,7 +38,7 @@ export function ParentGrowthCard({
         )}
       </View>
       <Text style={styles.meta}>
-        高频问题：字词没懂 {Math.round(vocabUnknownRate * 100)}% · 证据句没找到 {Math.round(evidenceMissedRate * 100)}% · 主旨偏差{" "}
+        最近更常卡住：字词没懂 {Math.round(vocabUnknownRate * 100)}% · 证据句没找到 {Math.round(evidenceMissedRate * 100)}% · 主旨偏差{" "}
         {Math.round(mainIdeaOffRate * 100)}%
       </Text>
     </AppCard>

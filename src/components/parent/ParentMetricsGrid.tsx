@@ -41,10 +41,10 @@ export function ParentMetricsGrid({
 }: ParentMetricsGridProps) {
   return (
     <View style={styles.metricGrid}>
-      <MetricTile icon="school-outline" label="本周学习" value={`${weeklyCompletedLessons}`} meta="次内容学习" />
-      <MetricTile icon="time-outline" label="平均时长" value={`${avgStudyMinutes} 分`} meta="单次学习" />
-      <MetricTile icon="sparkles-outline" label="掌握能力" value={`${masteredCount}`} meta="项能力点" />
-      <MetricTile icon="refresh-circle-outline" label="待复习" value={`${pendingReviewCount}`} meta="项温和巩固" />
+      <MetricTile icon="school-outline" label="本周推进" value={`${weeklyCompletedLessons}`} meta="次学习内容" />
+      <MetricTile icon="time-outline" label="平均节奏" value={`${avgStudyMinutes} 分`} meta="单次学习" />
+      <MetricTile icon="sparkles-outline" label="已经稳住" value={`${masteredCount}`} meta="项能力点" />
+      <MetricTile icon="refresh-circle-outline" label="等着复习" value={`${pendingReviewCount}`} meta="项温和巩固" />
     </View>
   );
 }

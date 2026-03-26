@@ -29,8 +29,13 @@ export function ParentLatestInputCard({
   return (
     <AppCard style={styles.card}>
       <View style={styles.rowBetween}>
-        <Text style={textStyles.title}>最近一次输入</Text>
+        <Text style={textStyles.title}>最近接住的内容</Text>
         <Text style={styles.meta}>{getRelativeInputTimeLabel(latestInput.createdAt)}</Text>
+      </View>
+      <View style={styles.focusCard}>
+        <Text style={styles.focusLabel}>这次先做</Text>
+        <Text style={styles.focusTitle}>{latestInput.recommendedEntryStep}</Text>
+        <Text style={styles.focusMeta}>{latestInput.routeLabel} · {latestInput.primaryChallenge}</Text>
       </View>
       <View style={styles.inputPreviewRow}>
         {hasImagePreview(latestInput) ? (
@@ -63,7 +68,6 @@ export function ParentLatestInputCard({
       <View style={styles.metaRow}>
         <StatusChip label={getInputSourceLabel(latestInput.source)} tone="primary" />
         <StatusChip label={getContentTypeLabel(latestInput.contentType)} />
-        <StatusChip label={latestInput.routeLabel} />
         <StatusChip label={`${latestInput.generatedTaskCount} 步任务`} tone="accent" />
       </View>
       <View style={styles.actionButtons}>
@@ -112,6 +116,27 @@ const styles = StyleSheet.create({
   inputPreviewContent: {
     flex: 1,
     gap: spacing.xxs,
+  },
+  focusCard: {
+    borderRadius: 16,
+    backgroundColor: colors.primary50,
+    borderWidth: 1,
+    borderColor: colors.primary200,
+    padding: spacing.sm,
+    gap: spacing.xxs,
+  },
+  focusLabel: {
+    ...textStyles.meta,
+    color: colors.primary600,
+  },
+  focusTitle: {
+    ...textStyles.title,
+    color: colors.textPrimary,
+  },
+  focusMeta: {
+    ...textStyles.caption,
+    color: colors.textSecondary,
+    lineHeight: 20,
   },
   metaRow: {
     flexDirection: "row",

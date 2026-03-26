@@ -11,6 +11,9 @@ interface ParentHeroCardProps {
   statusTone: "primary" | "accent";
   title: string;
   body: string;
+  spotlightLabel: string;
+  spotlightTitle: string;
+  spotlightMeta: string;
   childGradeLabel: string;
   focusLabel: string;
   uploadedTextbookLabel: string | null;
@@ -31,6 +34,9 @@ export function ParentHeroCard({
   statusTone,
   title,
   body,
+  spotlightLabel,
+  spotlightTitle,
+  spotlightMeta,
   childGradeLabel,
   focusLabel,
   uploadedTextbookLabel,
@@ -56,6 +62,11 @@ export function ParentHeroCard({
           </View>
           <Text style={styles.heroTitle}>{title}</Text>
           <Text style={styles.heroText}>{body}</Text>
+          <View style={styles.spotlightCard}>
+            <Text style={styles.spotlightLabel}>{spotlightLabel}</Text>
+            <Text style={styles.spotlightTitle}>{spotlightTitle}</Text>
+            <Text style={styles.spotlightMeta}>{spotlightMeta}</Text>
+          </View>
           <View style={styles.heroMetaRow}>
             <StatusChip label={childGradeLabel} tone="primary" />
             <StatusChip label={`重点：${focusLabel}`} />
@@ -137,6 +148,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexWrap: "wrap",
     gap: spacing.xs,
+  },
+  spotlightCard: {
+    borderRadius: radius.md,
+    backgroundColor: "rgba(255,255,255,0.72)",
+    borderWidth: 1,
+    borderColor: colors.primary200,
+    padding: spacing.sm,
+    gap: spacing.xxs,
+  },
+  spotlightLabel: {
+    ...textStyles.meta,
+    color: colors.primary600,
+  },
+  spotlightTitle: {
+    ...textStyles.title,
+    color: colors.textPrimary,
+  },
+  spotlightMeta: {
+    ...textStyles.caption,
+    color: colors.textSecondary,
+    lineHeight: 20,
   },
   heroActionRow: {
     flexDirection: "row",

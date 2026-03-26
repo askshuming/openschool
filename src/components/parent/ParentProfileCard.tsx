@@ -20,7 +20,7 @@ export function ParentProfileCard({
   return (
     <AppCard style={styles.card}>
       <View style={styles.rowBetween}>
-        <Text style={textStyles.title}>孩子档案</Text>
+        <Text style={textStyles.title}>孩子现在</Text>
         <StatusChip label={childGradeLabel} tone="primary" />
       </View>
       <Text style={styles.profileName}>{childDisplayName}</Text>
@@ -29,7 +29,7 @@ export function ParentProfileCard({
         {uploadedTextbookLabel ? <StatusChip label={`教材：${uploadedTextbookLabel}`} tone="accent" /> : null}
       </View>
       {!uploadedTextbookLabel ? (
-        <Text style={styles.meta}>未上传教材时，不展示教材信息；上传练习题、板书或图片也能自动安排学习内容。</Text>
+        <Text style={styles.meta}>还没有固定教材信息时，也可以直接上传练习题、板书或图片，系统会照样安排学习路线。</Text>
       ) : null}
     </AppCard>
   );

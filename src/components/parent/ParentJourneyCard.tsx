@@ -8,6 +8,7 @@ interface ParentJourneyCardProps {
   currentJourneyStatus: string;
   statusTone: "primary" | "accent";
   title: string;
+  summaryText: string;
   inputDone: boolean;
   inputTitle: string;
   inputMeta: string;
@@ -23,6 +24,7 @@ export function ParentJourneyCard({
   currentJourneyStatus,
   statusTone,
   title,
+  summaryText,
   inputDone,
   inputTitle,
   inputMeta,
@@ -39,7 +41,11 @@ export function ParentJourneyCard({
         <Text style={textStyles.title}>当前学习主线</Text>
         <StatusChip label={currentJourneyStatus} tone={statusTone} />
       </View>
-      <Text style={styles.title}>{title}</Text>
+      <View style={styles.focusCard}>
+        <Text style={styles.focusLabel}>现在最适合</Text>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.summaryText}>{summaryText}</Text>
+      </View>
       <View style={styles.track}>
         <View style={[styles.step, inputDone && styles.stepDone]}>
           <Text style={styles.stepLabel}>输入内容</Text>
@@ -80,6 +86,23 @@ const styles = StyleSheet.create({
   title: {
     ...textStyles.title,
     color: colors.textPrimary,
+  },
+  focusCard: {
+    borderRadius: radius.lg,
+    backgroundColor: colors.primary50,
+    borderWidth: 1,
+    borderColor: colors.primary200,
+    padding: spacing.md,
+    gap: spacing.xxs,
+  },
+  focusLabel: {
+    ...textStyles.meta,
+    color: colors.primary600,
+  },
+  summaryText: {
+    ...textStyles.caption,
+    color: colors.textSecondary,
+    lineHeight: 20,
   },
   track: {
     flexDirection: "row",

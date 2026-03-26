@@ -112,7 +112,7 @@ export function ParentScreen({ navigation }: Props) {
     settings: boolean;
     data: boolean;
   }>({
-    content: true,
+    content: false,
     diagnosis: false,
     settings: false,
     data: false,
@@ -373,15 +373,49 @@ export function ParentScreen({ navigation }: Props) {
     label: parentJourney.primaryAction.label,
     onPress: () => runParentJourneyAction(parentJourney.primaryAction.kind),
   };
+  const heroSpotlightLabel =
+    parentJourney.primaryAction.kind === "resume_session"
+      ? "当前正在进行"
+      : parentJourney.primaryAction.kind === "open_review_focus"
+        ? "下一步先做"
+        : parentJourney.primaryAction.kind === "start_content"
+          ? "已经安排好"
+          : "现在先做";
+  const heroSpotlightTitle =
+    parentJourney.primaryAction.kind === "resume_session"
+      ? `继续「${parentJourney.learningTitle}」`
+      : parentJourney.primaryAction.kind === "open_review_focus"
+        ? "先做 1 题温和复习"
+        : parentJourney.primaryAction.kind === "start_content"
+          ? `开始「${parentJourney.inputTitle}」`
+          : "回首页拍不会的那一页";
+  const heroSpotlightMeta =
+    parentJourney.primaryAction.kind === "resume_session"
+      ? `${parentJourney.learningMeta} · 学完后会自动接温和复习`
+      : parentJourney.primaryAction.kind === "open_review_focus"
+        ? firstPendingReview
+          ? `从「${firstPendingReview.title}」开始，先把眼前这题收住`
+          : parentJourney.reviewMeta
+        : parentJourney.primaryAction.kind === "start_content"
+          ? `${resumableInput?.routeLabel ?? "当前学习路线"} · 先做「${resumableInput?.recommendedEntryStep ?? "第一步"}」`
+          : "首页拍一页后，系统会自动接住内容并安排学习路线";
+  const journeySummaryText =
+    parentJourney.currentJourneyStatus === "学习中"
+      ? `${parentJourney.learningMeta}，从这里继续就行。`
+      : parentJourney.currentJourneyStatus === "该复习了"
+        ? `${parentJourney.reviewMeta}，现在最适合先复习眼前这一题。`
+        : parentJourney.inputDone
+          ? `${parentJourney.inputMeta} · 已经排好学习路线，下次打开也能从这里接上。`
+          : "拍照或上传后，系统会自动把输入内容、开始学习和温和复习串成同一条主线。";
   const heroSecondaryAction = {
     label:
       parentJourney.secondaryActionKind === "toggle_advanced"
         ? showAdvanced
-          ? "收起详细设置"
-          : "展开详细设置"
+          ? "收起详细信息"
+          : "看详细信息"
         : parentJourney.secondaryActionKind === "go_home"
           ? "回首页拍照"
-          : "查看复习页",
+          : "看复习页",
     onPress: () => runParentJourneyAction(parentJourney.secondaryActionKind),
   };
 
@@ -467,6 +501,9 @@ export function ParentScreen({ navigation }: Props) {
         statusTone={parentJourney.statusTone}
         title={parentJourney.heroTitle}
         body={parentJourney.heroBody}
+        spotlightLabel={heroSpotlightLabel}
+        spotlightTitle={heroSpotlightTitle}
+        spotlightMeta={heroSpotlightMeta}
         childGradeLabel={childGradeLabel}
         focusLabel={focusLabel}
         uploadedTextbookLabel={uploadedTextbookLabel}
@@ -476,17 +513,11 @@ export function ParentScreen({ navigation }: Props) {
         secondaryAction={heroSecondaryAction}
       />
 
-      <ParentMetricsGrid
-        weeklyCompletedLessons={report.weeklyCompletedLessons}
-        avgStudyMinutes={report.averageDurationMin}
-        masteredCount={progress.masteredTags.length}
-        pendingReviewCount={pendingReviewCount}
-      />
-
       <ParentJourneyCard
         currentJourneyStatus={parentJourney.currentJourneyStatus}
         statusTone={parentJourney.statusTone}
         title={parentJourney.journeyCardTitle}
+        summaryText={journeySummaryText}
         inputDone={parentJourney.inputDone}
         inputTitle={parentJourney.inputTitle}
         inputMeta={parentJourney.inputMeta}
@@ -496,13 +527,6 @@ export function ParentScreen({ navigation }: Props) {
         reviewDone={parentJourney.reviewDone}
         reviewTitle={parentJourney.reviewTitle}
         reviewMeta={parentJourney.reviewMeta}
-      />
-
-      <ParentProfileCard
-        childGradeLabel={childGradeLabel}
-        childDisplayName={childDisplayName}
-        focusLabel={focusLabel}
-        uploadedTextbookLabel={uploadedTextbookLabel}
       />
 
       {latestInput ? (
@@ -526,11 +550,25 @@ export function ParentScreen({ navigation }: Props) {
         mainIdeaOffRate={report.errorDistribution.main_idea_off}
       />
 
+      <ParentMetricsGrid
+        weeklyCompletedLessons={report.weeklyCompletedLessons}
+        avgStudyMinutes={report.averageDurationMin}
+        masteredCount={progress.masteredTags.length}
+        pendingReviewCount={pendingReviewCount}
+      />
+
+      <ParentProfileCard
+        childGradeLabel={childGradeLabel}
+        childDisplayName={childDisplayName}
+        focusLabel={focusLabel}
+        uploadedTextbookLabel={uploadedTextbookLabel}
+      />
+
       <AppCard style={styles.card}>
-        <Text style={textStyles.title}>详细设置与数据</Text>
-        <Text style={styles.meta}>主页面只保留状态和下一步动作；课程细节、设置、数据管理都收在这里。</Text>
+        <Text style={textStyles.title}>更多设置与数据</Text>
+        <Text style={styles.meta}>第一页只保留状态和下一步；课程细节、家长设置、导出和删除都收在这里。</Text>
         <AppButton
-          label={showAdvanced ? "收起详细信息" : "展开详细信息"}
+          label={showAdvanced ? "收起更多内容" : "查看更多内容"}
           variant="secondary"
           onPress={() => setShowAdvanced((prev) => !prev)}
         />
